@@ -1,0 +1,9 @@
+5- IMAGE PROMPTS No.4-
+
+From the LOCKED script, list every distinct LOCATION. For EACH, output a clean empty background-plate prompt in this exact structure.
+
+Provide 2–3 angle variations for any major recurring location (e.g. wide + close). After all plates, output a BACKGROUND TAG TABLE (Tag | Location | one-line look).
+
+Then confirm: "All background plates ready. Upload + tag in Flow, then proceed to Step 3C."
+
+Example: #BGD-02-MIRROR-ROOM | dusty room with an ornate full-length mirror, barred window, cold moonlight on a stone floor.

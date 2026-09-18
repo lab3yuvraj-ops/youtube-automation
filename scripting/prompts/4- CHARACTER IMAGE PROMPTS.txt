@@ -1,0 +1,24 @@
+4- CHARACTER IMAGE PROMPTS No-3
+
+list ALL characters (humans, the entity/ghost, key side characters).
+
+For EACH, output:
+
+1. NAME (from script).
+2. ASSET TAG – @CHAR-XX-NAME (e.g. @CHAR-01-MEERA, @CHAR-02-ROHAN, @CHAR-03-CHUDAIL). This is the tag I will use in Flow.
+3. REFERENCE-SHEET IMAGE PROMPT (a still, generated in Nano Banana / Google Flow) covering: age, build, skin tone, exact face (jawline, eyes, nose, eyebrows), hair colour/length/style, facial hair, distinguishing marks (bindi, glasses, scar, jewellery, tilak), exact Indian-accurate clothing, and a neutral 3/4 reference pose with a clear front-facing expression.
+
+2D semi-realistic cartoon illustration, bold clean outlines, smooth flat cel shading, Indian character design, expressive detailed face, neutral grey studio background, full character reference sheet, flat 2D vector art, no text, no watermark, --ar 16:9
+
+ENTITY/GHOST EXTRA TAGS (chudail/pret/pishach/jinn):
+- Pale or greenish-grey skin
+- Long messy black hair
+- Glowing white/red eyes
+- Tattered saree
+- Eerie under-glow
+
+After all characters, output a CHARACTER TAG TABLE:
+
+| Tag | Name | One-line Look |
+
+Then confirm: "All character sheets ready. Upload + tag in Flow, then proceed to Step 3B."

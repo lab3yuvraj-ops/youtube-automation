@@ -1,0 +1,74 @@
+6- ANIMATION PROMPTS No.5-
+
+Break the script into natural-length scenes covering the ENTIRE video. Let the generation choose the duration needed for each action and complete spoken line. State at the top:
+
+"Duration: {{DURATION_MINUTES}} min | Minimum Scenes: {{MINIMUM_SCENES}} | Generating: {{SCENE_COUNT}}"
+
+Use ONLY my uploaded assets via their tags (@CHAR-XX-NAME, #BGD-XX-NAME). Copy each dialogue line EXACTLY from Step 2 (Devanagari, same words).
+
+For each scene output BOTH a STILL IMAGE prompt and an ANIMATION + AUDIO prompt in the EXACT format below.
+
+---
+SCENE [N] — [2–3 word title]
+TIMESTAMP: [AUTO — based on the completed clip]
+ASSETS: [#BGD-XX-NAME] + [@CHAR tags present, or "none"]
+SPEAKER: [NARRATOR (layer in edit) / @CHAR-XX-NAME / none]
+---
+
+STILL IMAGE PROMPT (generate first, use as first frame)
+
+2D semi-realistic cartoon illustration, bold clean outlines, smooth flat cel shading, [#BGD environment], [characters by their locked look + position + expression], [camera angle], [lighting], flat 2D vector art, no text, no watermark, --ar 16:9.
+
+---
+## ANIMATION + AUDIO PROMPT (paste into Omni with the still as first frame)
+
+### SYSTEM & ENVIRONMENT
+**CLIP LENGTH:** [AUTO — allow the generation to complete the action and dialogue; do not force a duration]
+**STYLE ANCHOR:**
+2D semi-realistic cartoon illustration, bold clean outlines, smooth flat cel shading. Maintain 100% flat 2D vector art aesthetics.
+**ACTIVE ENVIRONMENT:** [#BGD-XX-NAME]
+**ACTIVE CHARACTERS:** [@CHAR tags]
+
+---
+
+### VISUAL ACTION & CAMERA
+**SCENE ACTION:** [what happens, using the tags]
+**PHYSICS/EFFECTS:** [flicker, fog, hair, fire]
+
+---
+
+### LIP-SYNC CONTROL & AUDIO
+**[LIP-SYNC LOCK]:**
+Only [@speaker]'s mouth animates to the dialogue. All other characters ([@silent tags]) keep mouths completely closed, still and static for the entire clip.
+**AUDIO PROTOCOL:** Native Indian voice synthesis only.
+**SPEAKER IDENTITY:** [age + gender + emotion, e.g. 27-yr female, trembling whisper].
+**LINGUISTIC CONSTRAINT:**
+100% native Indian accent (शुद्ध उत्तर भारतीय लहजा / क्षेत्र: उत्तर प्रदेश-बिहार).
+Absolute prohibition on Western/English/British/American accent cadence.
+**DIALOGUE (DEVANAGARI ONLY):**
+"[exact Hindi line from Step 2]"
+**SOUND DESIGN:** [ambient + SFX; state if narrator VO is layered later].
+
+---
+
+### NEGATIVE RESTRICTIONS
+- NO photorealism
+- NO 3D rendering
+- NO CGI shading
+- NO realistic skin/hair textures
+- NO depth-of-field that breaks the 2D plane
+- NO English-accent inflection
+- NO dual-character lip-sync
+- NO text overlays
+- NO watermarks
+
+Generate ALL scenes start to finish in order, covering every line of the script. Do not stop midway.
+
+LOCKED SCRIPT:
+{{SCRIPT}}
+
+LOCKED CHARACTER TAGS AND PROMPTS:
+{{CHARACTERS}}
+
+LOCKED BACKGROUND TAGS AND PROMPTS:
+{{BACKGROUNDS}}

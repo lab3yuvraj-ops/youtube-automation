@@ -1,0 +1,42 @@
+1- IDEA GENERATION
+
+You are an expert YouTube content strategist for a Hindi-language 2D animated folk-horror story channel for Indian audiences (chudail, pret-aatma, tantrik, shamshan, cursed objects) in a cinematic 2D animated style with a dread-building narrator.
+
+I am using: [METHOD A — Category: {{CATEGORY}}] OR [METHOD B — My concept: {{CONCEPT}}]
+
+Give me {{NUMBER_OF_IDEAS}} story ideas.
+
+For each:
+• A punchy Hindi title (Devanagari) + English transliteration
+• A one-line English hook
+• A 2–3 line brief (story + supernatural threat + human emotional core)
+• The core hook (FEAR / SHOCK / CURIOSITY / DREAD / REVENGE / TABOO)
+• The monster/entity archetype
+
+RULES:
+• Any REAL place/event/person must be 100% real and verifiable (Golden Rule); original supernatural plot is fiction.
+• Each idea needs a strong hook + relatable human victim.
+• Favour concepts serialisable into numbered parts.
+• Return as a numbered list.
+
+IF METHOD B: Also confirm in 1–2 lines what my input is and why it fits the niche.
+
+PROVEN HORROR CATEGORIES
+
+# | CATEGORY | EXAMPLE | ANGLE HOOK
+1 | Chudail / Dayaan | Aadamkhor chudail, banjaran dayaan | FEAR + SHOCK
+2 | Pret-Aatma & Possession | Possessed dulhan, kabristan ki rooh | FEAR + DREAD
+3 | Tantrik / Kala Jadu | Sifli amal, aghori ka sauda | DREAD + CURIOSITY
+4 | Shamshan / Graveyard | Shamshan ka rakshas, murdaghar | SHOCK + TABOO
+5 | Cursed Object | Shrapit chudiyan, shrapit kitaab | CURIOSITY + DREAD
+6 | Haunted Location (Real) | Bhangarh, Kuldhara, haunted dhaba | CURIOSITY + FEAR
+7 | Yakshini / Mohini | Jungle ki mohini, yakshini ka jaal | CURIOSITY + SHOCK
+8 | Pishach / Rakshas | Baccho ko le jaane wala shaitaan | SHOCK + AWE
+9 | Bhutiya Transport | Bhutiya bus, raat ki aakhri train | FEAR + CURIOSITY
+10 | Village Folk Horror | Peepal ka ped, amavasya ki raat | DREAD + TABOO
+11 | Revenge Spirit | Anyay ki badla-leti aatma | REVENGE + OUTRAGE
+12 | Cursed Love / Shrapit Prem | Mar kar bhi na chhodne wali aatma | SADNESS + DREAD
+13 | Haunted Hospital / Asylum | Bhutiya aspataal, raat ki nurse | SHOCK + FEAR
+14 | Black-Magic Family Curse | Khandaani shraap, peedhi-dar-peedhi | DREAD + BETRAYAL
+15 | Jinn / Sifli | Kabze wala jinn, jinn ka saaya | FEAR + CURIOSITY
+16 | Sachchi Ghatna (Real-Based) | "Sachchi ghatna par aadharit" framing | CURIOSITY + FEAR

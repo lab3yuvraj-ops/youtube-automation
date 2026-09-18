@@ -1,0 +1,28 @@
+# Credentials and local browser sessions
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+production/chrome-profile/
+.railway/
+
+# Generated projects and media
+scripting/projects/
+production/outputs/
+outputs/
+*.mp4
+*.wav
+*.mp3
+*.m4a
+
+# Dependencies and caches
+node_modules/
+production/node_modules/
+**/__pycache__/
+*.py[cod]
+.venv/
+npm-debug.log*
+
+.chrome-profile/
+.claude/

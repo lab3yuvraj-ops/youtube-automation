@@ -1,0 +1,96 @@
+7- UPLOADING
+
+STEP 4 — COPY THIS PROMPT:
+
+The script is complete. Generate the full publishing package.
+
+Deliver in this exact order:
+
+===== PART 1 — VIDEO TITLES (10 options) =====
+Write 10 titles (English + Hindi transliteration as used by top Hindi horror channels). Each under 100 characters.
+
+Mix these proven formulas:
+● [Monster Name] | Hindi Horror Story | [Channel] | Animated Stories
+● [Concept] – [chilling subtitle] | Bhoot Ki Kahani | Sachchi Horror Story
+● Numbered serial: [Name] [N] Horror Story | ...
+● Hook/shock line: 'Jisne Bhi Pehli... Uski Maut Tay' style
+● Add 'Sachchi Ghatna par aadharit' authenticity tag where appropriate.
+● Number them 1–10.
+
+===== PART 2 — SEO VIDEO DESCRIPTION =====
+English, SEO-optimised:
+● Opening hook (2–3 lines) shown before "Show More"
+● Para 1: What this video is about (100–150 words)
+● Para 2: 5–8 bullet topic points
+● Para 3: Channel description + Subscribe CTA
+● 8–10 timestamps (00:00 — Chapter Name)
+● Footer line: "This is a fictional horror story created for entertainment."
+● Minimum 350 words
+
+===== PART 3 — HASHTAGS =====
+Write 12–15 English hashtags.
+Must include:
+● #HindiHorrorStory
+● #HorrorStory
+● #AnimatedStories
+● #BhootKiKahani
+● #ScaryStories
+Plus topic-specific hashtags.
+One hashtag per line.
+
+===== PART 4 — VIDEO TAGS (SEO) =====
+Write comma-separated YouTube tags within YouTube's 500-character limit.
+Mix:
+● Exact-match keywords
+● Broad keywords
+● Monster-specific keywords
+● Format keywords
+● Channel keywords
+● English + transliterated monster names
+
+===== PART 5 — THUMBNAIL IMAGE PROMPTS (10 options) =====
+Write 10 single-paragraph thumbnail prompts, numbered 1–10.
+Each prompt should have:
+● A different composition
+● A different text style
+● A different colour scheme
+● Rotate through the LAYOUTS and TEXT STYLES in the reference below.
+End every prompt with: --ar 16:9
+
+THUMBNAIL STYLE REFERENCE GUIDE
+Derived from analysis of 16 top-performing Hindi horror thumbnails. These principles apply directly to your thumbnail prompts in Step 4, Part 5.
+
+Element | What Works In This Niche
+Dominant Style | 2D semi-realistic cartoon — bold outlines, smooth shading, dramatic rim light. High detail on the central figure; cinematic poster feel.
+Colour Energy | Teal-blue moonlit night base is default. Fiery orange-red for demonic/hell themes. Purple-magenta glow for cursed objects & magic. High saturation, dark vignette.
+
+10 THUMBNAIL LAYOUTS — Rotate Through All 10, Never Repeat
+● Layout 1 — VICTIM + ENTITY BEHIND: Terrified human in the foreground (60–65% of image height), supernatural entity looming behind. Title placed top-right or bottom. The single most-used niche layout.
+● Layout 2 — SINGLE ENTITY CLOSE-UP: One menacing chudail/pret/demon face filling 70–80% of the frame, glowing eyes, atmospheric background barely visible. Title at the bottom or right.
+● Layout 3 — GHOST GRABS VICTIM: Entity clutching/embracing a screaming victim from behind, both faces visible. Forest or indoor night background. Title top-right.
+● Layout 4 — TANTRIK RITUAL TRIO: Tantrik/witch in the centre with magic strings or fire, two terrified victims flanking them, glowing magic circle + diya. Title bottom-centre.
+● Layout 5 — SCREAMING VICTIM MID-ACTION: Gory/possessed victim filling the frame, blood scratches, subway/forest/room setting. Brushstroke title top-left.
+● Layout 6 — COFFIN / TABOOT PROCESSION: Hooded red demons carrying a glowing coffin with a fleeing victim at the side, graveyard setting. Title top-right. (Best for serials.)
+● Layout 7 — EMOTIONAL / CURSED LOVE SPLIT: Human on one side and spirit on the other reaching toward each other, warm vs cool color split, multi-line Hindi tagline.
+● Layout 8 — GROUP DREAD: Multiple repeated faceless/veiled figures (e.g., banjaran), candle/lantern lighting, title on the left in Devanagari.
+● Layout 9 — SKULL + ENTITY + GRAVE: Fiery orange color palette, tombstone with carved name/dates, hellish glow, chudail rising behind, large Devanagari title.
+● Layout 10 — LANTERN ENVIRONMENT + LONE FIGURE: Single ghost or victim holding a lantern in a well, graveyard, or forest with heavy fog. Transliteration title at the bottom.
+
+TEXT STYLES — Assign One Per Prompt, Never Repeat
+● Style A — RED BRUSH + WHITE SUBTITLE: First word in red horror brushstroke ALL CAPS, "HORROR STORY" in white below. (Default niche style.)
+● Style B — DEVANAGARI RED BRUSH: Hindi title in dripping red brush font with a small white tagline below.
+● Style C — BIG BOTTOM TITLE: Large transliterated title spanning the lower third in red brush lettering.
+● Style D — NUMBERED SEQUEL: Title with a large red or white sequel number beside it (e.g., 2, 3).
+● Style E — WHITE CAPS + RED ACCENT: White all-caps headline with 1–2 important words highlighted in red.
+● Style F — MULTI-LINE TAGLINE: Main title plus 2–3 lines of emotional Hindi tagline (ideal for cursed-love themes).
+● Style G — GOLD / CARVED ON STONE: Character name carved into a tombstone with the Devanagari title in red.
+● Style H — GLOW CAPS: Title in glowing red/orange capital letters matching fire or magic-circle lighting.
+
+MANDATORY IN EVERY THUMBNAIL PROMPT
+● Central figure fills 60–80% of frame in portrait compositions.
+● Expressions: Victims: terror. Entities: menace + glowing eyes. Calm expressions only as dramatic irony.
+● 2D semi-realistic cartoon style — bold outlines, smooth shading, NOT photorealistic.
+● Dark edge vignette + high-contrast cinematic look; no watermark in the generated image.
+
+End Every Thumbnail Prompt With:
+"2D semi-realistic cartoon horror thumbnail, cinematic poster composition, bold outlines, dramatic rim lighting, high saturation, dark vignette, no watermark. --ar 16:9"

@@ -1,0 +1,14 @@
+import fs from 'node:fs/promises'; import path from 'node:path'; import { Pipeline, Item } from './types.js'; import { FlowClient } from './flowClient.js'; import { S } from './selectors.js';
+
+async function save(file:string,p:Pipeline){ const tmp=file+'.tmp'; await fs.writeFile(tmp,JSON.stringify(p,null,2),'utf8'); await fs.rename(tmp,file); }
+function retryable(item:Item){ return item.status!=='done'; }
+function mark(item:Item,status:'done'|'failed',error?:unknown){ item.status=status; item.error=status==='failed'?String(error):null; item.updated_at=new Date().toISOString(); }
+async function once(label:string,item:Item,fn:()=>Promise<void>,p:Pipeline,file:string,log:(e:string,d?:any)=>void){ if(!retryable(item)) return; try { log('start',{label}); await fn(); mark(item,'done'); log('done',{label}); } catch(e) { mark(item,'failed',e); log('failed',{label,error:String(e)}); } finally { await save(file,p); } }
+
+export async function run(flow:FlowClient,page:any,p:Pipeline,file:string,out:string,log:(e:string,d?:any)=>void){
+  await fs.mkdir(out,{recursive:true});
+  for(const [i,c] of p.characters.entries()) await once(`character:${i+1}`,c,async()=>{ await flow.click(S.addMedia); await flow.click(S.addCharacter); await flow.prompt(String(c.full_prompt)); await flow.generate(); await flow.rename(String(c.tag??c.name)); const look=String(c.look_summary??''); const voice=(c.voice??{}) as any; const gender=voice.gender??(look.match(/\b(female|woman|girl|स्त्री|महिला)\b/i)?'female':'male'); const age=String(voice.age??(look.match(/\b\d{2}\s*(?:year|yr|वर्ष)/i)?.[0]??'')); const descriptor=String(voice.descriptor??(look.match(/(?:region|accent|लहजा|क्षेत्र)[^,.;]*/i)?.[0]??'उत्तर भारतीय लहजा')); await flow.configureVoice({gender,age,descriptor,name:String(c.name??c.tag)}); },p,file,log);
+  for(const [i,b] of p.backgrounds.entries()) await once(`background:${i+1}`,b,async()=>{ await flow.click(S.allMedia); await flow.prompt(String(b.full_prompt)); await flow.click(S.aspect16x9); await flow.generate(); await flow.rename(String(b.tag??b.location_name)); },p,file,log);
+  const scenes=[...p.scenes].sort((a,b)=>Number(a.scene_number)-Number(b.scene_number));
+  for(const s of scenes) await once(`scene:${s.scene_number}`,s,async()=>{ const narrator=s.speaker==='NARRATOR'||s.speaker==='none'; const prompt=narrator?s.animation_prompt_NARRATOR_ONLY:s.animation_prompt_WITH_lipsync; const assets=s.assets as any; await flow.click(S.addMedia); await flow.click(S.addScene); await flow.prompt(String(prompt)); await flow.selectAsset(String(assets?.background_tag)); for(const tag of (assets?.character_tags??[])) await flow.selectAsset(String(tag)); await flow.click(S.aspect16x9); await flow.generate(); await flow.download(out,`scene-${String(s.scene_number).padStart(4,'0')}.mp4`); },p,file,log);
+}

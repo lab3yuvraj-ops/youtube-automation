@@ -1,0 +1,26 @@
+// Flow changes frequently. Keep selectors here so UI maintenance does not touch orchestration.
+export const S = {
+  addMedia:["button[aria-label='Add media menu']","button[aria-label*='Add media']","button[mattooltip='Add media']"],
+  addCharacter:["text=Create character","[role='menuitem']:has-text('Create character')"],
+  addScene:["text=New scene","[role='menuitem']:has-text('New scene')"],
+  promptInput:["[contenteditable='true']","div[role='textbox']","[placeholder*='Describe']"],
+  submit:["button[type='submit']:has-text('Start generation')","button:has-text('Start generation')","text=Generate","button:has-text('Generate')","button:has-text('Create')"],
+  completed:["text=Download","text=Ready","[data-generation-state='complete']","video","button:has-text('Download')"],
+  options:["[aria-label*='More']","[aria-label*='Options']","button:has-text('⋮')","button[aria-label*='more' i]"],
+  rename:["text=Rename","[role='menuitem']:has-text('Rename')"],
+  nameInput:["input[placeholder*='name' i]","input[aria-label*='name' i]"],
+  save:["text=Save","button:has-text('Save')"],
+  voice:["text=Voice","[aria-label*='voice' i]","button:has-text('Voice')"],
+  maleVoice:["text=Male","[aria-label*='male' i]"],
+  femaleVoice:["text=Female","[aria-label*='female' i]"],
+  customizePerformance:["text=Customize performance","text=Customize Performance"],
+  ageInput:["input[placeholder*='age' i]","input[aria-label*='age' i]"],
+  descriptorInput:["textarea[placeholder*='region' i]","textarea[placeholder*='accent' i]","input[placeholder*='region' i]"],
+  voiceNameInput:["input[placeholder*='voice name' i]","input[aria-label*='voice name' i]"],
+  saveNewVoice:["text=Save as new voice","text=Save new voice"],
+  addToCharacter:["text=Add to Character","text=Add to character"],
+  allMedia:["text=All media","button:has-text('All media')","[role='button']:has-text('All media')","li:has-text('All media')"],
+  aspect16x9:["text=16:9","[aria-label*='16:9']"],
+  picker:["[role='listbox']","[role='menu']"],
+  download:["a[download]","text=Download","button:has-text('Download')"]
+} as const;

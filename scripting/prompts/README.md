@@ -1,0 +1,1 @@
+These six files contain the literal stage prompt bodies extracted from `HORROR PROMPTS.pdf`. Keep the wording intact. The runner substitutes only the named `{{field_name}}` tokens and rejects files containing `PASTE_LITERAL_TEMPLATE_HERE`.
