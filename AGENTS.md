@@ -1,6 +1,6 @@
 # YouTube Automation operating rules
 
-When the user supplies a video title, start a new local project from that title using `start-video.ps1`. The scripting stage must retain the literal templates in `scripting/prompts/`, produce a one-minute Hindi folk-horror story with exactly 12 scenes, and preserve the reference style: flat, semi-realistic 2D Indian animation with natural adult human proportions.
+When the user supplies a video title, start a new local project from that title using `start-video.ps1`. The scripting stage must retain the literal templates in `scripting/prompts/`, produce a one-minute Hindi folk-horror story with exactly 12 scenes, and preserve the reference style: flat, semi-realistic 2D Indian animation with natural adult human proportions. Use `OPENAI_API_KEY` when available; otherwise use `GROQ_API_KEY`. Never store either key in the repository.
 
 Run Google Flow only through the authenticated persistent local Chrome profile. Create characters, backgrounds, then scenes; download every completed scene. Never require or assume six-second clips: Flow determines the natural duration required for each action and spoken line.
 

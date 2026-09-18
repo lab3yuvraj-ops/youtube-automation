@@ -1,12 +1,12 @@
 param(
   [Parameter(Mandatory = $true)][string]$Title,
   [string]$Concept = "",
-  [string]$Model = "openai/gpt-oss-120b"
+  [string]$Model = ""
 )
 
 $ErrorActionPreference = "Stop"
-if ([string]::IsNullOrWhiteSpace($env:GROQ_API_KEY)) {
-  throw "Set GROQ_API_KEY in your environment before starting a project."
+if ([string]::IsNullOrWhiteSpace($env:OPENAI_API_KEY) -and [string]::IsNullOrWhiteSpace($env:GROQ_API_KEY)) {
+  throw "Set OPENAI_API_KEY or GROQ_API_KEY in scripting/.env or your environment before starting a project."
 }
 
 $projectId = "youtube-automation-" + (Get-Date -Format "yyyyMMdd-HHmmss")
@@ -14,7 +14,8 @@ $repoRoot = $PSScriptRoot
 
 Push-Location (Join-Path $repoRoot "scripting")
 try {
-  $arguments = @("-m", "pipeline.one_minute", "--project-id", $projectId, "--model", $Model, "--title", $Title)
+  $arguments = @("-m", "pipeline.one_minute", "--project-id", $projectId, "--title", $Title)
+  if (-not [string]::IsNullOrWhiteSpace($Model)) { $arguments += @("--model", $Model) }
   if (-not [string]::IsNullOrWhiteSpace($Concept)) { $arguments += @("--concept", $Concept) }
   & python @arguments
 } finally {

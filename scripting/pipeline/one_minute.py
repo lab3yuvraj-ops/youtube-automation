@@ -5,11 +5,9 @@ import argparse
 import json
 import os
 import re
-import time
 from pathlib import Path
 
-from groq import Groq
-
+from .anthropic_client import ScriptClient
 from .models import new_project, save
 from .prompts import render, STYLE_LOCK
 
@@ -18,22 +16,8 @@ BG_TAG = re.compile(r"^#BGD-\d{2}-[A-Z][A-Z0-9-]*$")
 PROJECTS_ROOT = Path(os.environ.get("PROJECTS_DIR", "projects"))
 
 
-def ask(client: Groq, model: str, prompt: str, max_tokens: int = 4800):
-    for attempt in range(5):
-        try:
-            response = client.chat.completions.create(
-                model=model, temperature=0, max_tokens=max_tokens,
-                reasoning_effort="low",
-                messages=[{"role": "user", "content": prompt}],
-            )
-            content = response.choices[0].message.content or ""
-            if not content.strip():
-                raise ValueError(f"Groq returned empty content ({response.choices[0].finish_reason})")
-            return content
-        except Exception as exc:
-            if "rate" not in type(exc).__name__.lower() or attempt == 4:
-                raise
-            time.sleep(12 * (attempt + 1))
+def ask(client: ScriptClient, prompt: str, max_tokens: int = 4800):
+    return client.complete(prompt, max_tokens=max_tokens, temperature=0)
 
 
 def json_object(raw: str) -> dict:
@@ -140,8 +124,8 @@ def validate(project: dict):
         make_prompts(scene, chars, bgs)
 
 
-def generate(project_id: str, model: str, title: str | None = None, concept: str | None = None):
-    client = Groq()
+def generate(project_id: str, model: str | None = None, title: str | None = None, concept: str | None = None):
+    client = ScriptClient(model=model)
     path = PROJECTS_ROOT / project_id / "pipeline.json"
     concept = concept or "बारिश में उत्तर भारतीय कस्बे की आख़िरी बस; एक अकेली महिला यात्री, तीसरी खाली सीट, और पिछली दुर्घटना में मरी आत्मा"
     project = new_project(project_id, "B", concept, 3)
@@ -153,12 +137,12 @@ def generate(project_id: str, model: str, title: str | None = None, concept: str
         raw = "Title supplied directly by the user; idea selection intentionally skipped."
     else:
         idea_prompt = render("ideas", {"CATEGORY": "", "CONCEPT": concept, "NUMBER_OF_IDEAS": 3})
-        raw = ask(client, model, idea_prompt + "\nReturn the numbered list exactly as requested. Do not invent real place names.", 1800)
+        raw = ask(client, idea_prompt + "\nReturn the numbered list exactly as requested. Do not invent real place names.", 1800)
     save_stage(path, project, "ideas", raw)
     project["idea"].update(status="done", raw_output=raw)
     # User delegated selection. Lock the topic before the next call so later stages cannot drift.
     if title:
-        hook = ask(client, model, f"Write one single-sentence Devanagari Hindi folk-horror hook for this exact video title: {title}. Keep it original, set in a fictional North Indian town, and use no real people or places. Return only the hook.", 220)
+        hook = ask(client, f"Write one single-sentence Devanagari Hindi folk-horror hook for this exact video title: {title}. Keep it original, set in a fictional North Indian town, and use no real people or places. Return only the hook.", 220)
         selected = {"index": 1, "title": title.strip(), "hook": hook.strip(), "entity_archetype": "Pret-aatma"}
     else:
         selected = {"index": 1, "title": "आख़िरी बस की तीसरी सीट (Aakhri Bus Ki Teesri Seat)",
@@ -169,20 +153,20 @@ def generate(project_id: str, model: str, title: str | None = None, concept: str
 
     story = render("story", {"TITLE": selected["title"], "HOOK": selected["hook"], "LANGUAGE": "Hindi",
                                "DURATION_MINUTES": 1, "WORD_COUNT": 150, "MONSTER": "बस की तीसरी सीट की प्रेत-आत्मा"})
-    raw = ask(client, model, story + "\nWrite the full 130–155-word Hindi story now. Use only fictional named people and a fictional unnamed North Indian town. Every line that will be spoken must be written in Devanagari. One female protagonist, one driver, one spectral woman. Do not switch to another premise.", 4000)
+    raw = ask(client, story + "\nWrite the full 130–155-word Hindi story now. Use only fictional named people and a fictional unnamed North Indian town. Every line that will be spoken must be written in Devanagari. One female protagonist, one driver, one spectral woman. Do not switch to another premise.", 4000)
     project["script"].update(status="done", language="Hindi", duration_minutes=1, word_count=150,
                              monster="प्रेत-आत्मा", raw_text=raw, raw_output=raw)
     save(path, project)
 
     schema = """Return ONLY JSON: {"characters":[{"tag":"@CHAR-01-NAME","name":"...","look_summary":"...","full_prompt":"...","voice_description":"..."}]}.
 All names/roles must come from the locked script. Never include a tag table as a character. Each full_prompt must be a complete 16:9 human-proportioned 2D reference-sheet prompt with exact face, clothes, age, and pose."""
-    raw = ask(client, model, render("characters", {"SCRIPT": raw}) + "\n" + schema, 3000)
+    raw = ask(client, render("characters", {"SCRIPT": raw}) + "\n" + schema, 3000)
     project["characters"] = [{**c, "status": "pending", "error": None} for c in json_object(raw)["characters"]]
     save_stage(path, project, "characters", raw)
 
     bg_schema = """Return ONLY JSON: {"backgrounds":[{"tag":"#BGD-01-NAME","location_name":"...","look_summary":"...","full_prompt":"..."}]}.
 Every recurring location gets a wide and a close angle as separate tagged plates. All plates must be empty, 16:9, and in the locked 2D style."""
-    raw = ask(client, model, render("backgrounds", {"SCRIPT": project["script"]["raw_text"]}) + "\n" + bg_schema, 3000)
+    raw = ask(client, render("backgrounds", {"SCRIPT": project["script"]["raw_text"]}) + "\n" + bg_schema, 3000)
     project["backgrounds"] = [{**b, "status": "pending", "error": None} for b in json_object(raw)["backgrounds"]]
     save_stage(path, project, "backgrounds", raw)
 
@@ -194,7 +178,7 @@ Every recurring location gets a wide and a close angle as separate tagged plates
                                      "BACKGROUNDS": json.dumps(compact_bgs, ensure_ascii=False)})
     scene_schema = """Return ONLY JSON with {"scenes":[{"scene_number":1,"title":"...","background_tag":"#BGD-01-NAME","character_tags":["@CHAR-01-NAME"],"speaker":"NARRATOR|none|@CHAR-01-NAME","visual_action":"...","camera":"...","effects":"...","sound_design":"...","devanagari_dialogue":"...","narration_text":"..."}]}.
 Exactly 12 scenes in script order. Do not specify, request, or assume a fixed clip length: Flow must choose the natural length needed to complete the action and any dialogue. Use ONLY listed tags. Dialogue must be an exact line from the script; for narration, keep the exact line as metadata for later editing, not in the Flow animation prompt. For every NARRATOR or none scene, narration_text is mandatory: provide one concise Devanagari Hindi narration line consistent with the locked script, never blank. Do not invent character dialogue."""
-    raw = ask(client, model, scene_prompt + "\n" + scene_schema, 6000)
+    raw = ask(client, scene_prompt + "\n" + scene_schema, 6000)
     project["scenes"] = json_object(raw)["scenes"]
     save_stage(path, project, "scenes", raw)
     validate(project)
@@ -208,7 +192,7 @@ Exactly 12 scenes in script order. Do not specify, request, or assume a fixed cl
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-id", default="youtube-automation-last-bus")
-    parser.add_argument("--model", default="openai/gpt-oss-120b")
+    parser.add_argument("--model", default=None, help="Optional model override for the selected OpenAI or Groq provider.")
     parser.add_argument("--title", default=None, help="A supplied title skips idea selection and generates the locked 12-scene project.")
     parser.add_argument("--concept", default=None, help="Optional premise detail to guide the title-based story.")
     args = parser.parse_args()

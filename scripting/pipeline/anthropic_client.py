@@ -1,20 +1,51 @@
+"""Provider-neutral text client for the scripting half of the pipeline."""
 import json
-from groq import Groq
+import os
+from typing import Literal
 
-class GroqClient:
-    """Groq chat-completions adapter for the stage pipeline."""
-    def __init__(self, model: str = "openai/gpt-oss-120b"):
-        self.client = Groq()
-        self.model = model
+from dotenv import load_dotenv
 
-    def complete(self, prompt: str) -> str:
-        msg = self.client.chat.completions.create(model=self.model, max_tokens=7000, temperature=0, messages=[{"role": "user", "content": prompt}])
-        content = msg.choices[0].message.content or ""
+load_dotenv()
+
+Provider = Literal["openai", "groq"]
+DEFAULT_MODELS: dict[Provider, str] = {"openai": "gpt-4.1-mini", "groq": "openai/gpt-oss-120b"}
+
+
+def select_provider() -> Provider:
+    """Prefer OpenAI when both supported keys are intentionally configured."""
+    if os.getenv("OPENAI_API_KEY"):
+        return "openai"
+    if os.getenv("GROQ_API_KEY"):
+        return "groq"
+    raise RuntimeError("No writing-model key found. Add OPENAI_API_KEY or GROQ_API_KEY to scripting/.env (or set it in your environment).")
+
+
+class ScriptClient:
+    """Text-completions adapter using the available local provider."""
+    def __init__(self, provider: Provider | None = None, model: str | None = None):
+        self.provider = provider or select_provider()
+        self.model = model or os.getenv(f"{self.provider.upper()}_MODEL") or DEFAULT_MODELS[self.provider]
+        if self.provider == "openai":
+            from openai import OpenAI
+            self.client = OpenAI()
+        else:
+            from groq import Groq
+            self.client = Groq()
+
+    def complete(self, prompt: str, max_tokens: int = 7000, temperature: float = 0) -> str:
+        response = self.client.chat.completions.create(
+            model=self.model, max_tokens=max_tokens, temperature=temperature,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        content = response.choices[0].message.content or ""
         if not content.strip():
-            raise ValueError("Groq returned an empty response")
+            raise ValueError(f"{self.provider} returned an empty response")
         return content
 
-Claude = GroqClient  # Compatibility for existing callers.
+
+# Compatibility names used by the existing stage CLI.
+GroqClient = ScriptClient
+Claude = ScriptClient
 
 def parse_jsonish(raw: str):
     text = raw.strip()

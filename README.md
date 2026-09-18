@@ -2,19 +2,27 @@
 
 This repository contains a two-half pipeline:
 
-- `scripting/`: Groq API orchestration for idea -> script -> assets -> scenes -> publishing metadata.
+- `scripting/`: OpenAI-or-Groq API orchestration for idea -> script -> assets -> scenes -> publishing metadata.
 - `production/`: Playwright browser automation for Google Flow using a persistent Chrome profile.
 
 ## Fastest local workflow: give one title
 
-This is a local-only project. Nothing requires Railway or a cloud browser session. Set your own Groq key once, ensure Chrome is logged into Google Flow, then run:
+This is a local-only project. Nothing requires Railway or a cloud browser session. Copy `scripting/.env.example` to `scripting/.env`, add either your OpenAI or Groq key, ensure Chrome is logged into Google Flow, then run:
 
 ```powershell
-$env:GROQ_API_KEY = "your-own-key"
 .\start-video.ps1 -Title "आख़िरी बस की तीसरी सीट" -Concept "बरसाती रात में तीसरी सीट पर बैठी प्रेत-आत्मा"
 ```
 
 The launcher creates a fresh one-minute project with exactly 12 structured scenes, then opens the persistent local Chrome profile and runs Flow in this order: characters → backgrounds → scenes → downloads. Flow itself decides every scene's natural duration; no scene is forced to six seconds.
+
+### Writing-model selection
+
+The scripting stages (idea, story, characters, backgrounds, scenes, and publishing metadata) automatically choose the first available local key:
+
+1. `OPENAI_API_KEY` → OpenAI, default model `gpt-4.1-mini`.
+2. `GROQ_API_KEY` → Groq, default model `openai/gpt-oss-120b`.
+
+If both keys exist, OpenAI is used. Set `OPENAI_MODEL` or `GROQ_MODEL` in `scripting/.env` to override the default. Keys are never committed; `.env` is ignored by Git.
 
 After Flow finishes, generate the listed narrator files in Google AI Studio. If Google AI Studio does not generate after two attempts, the operating rule is to pause and ask the human to click **Run**. Put files in `production/outputs/<project>/narration/`, then run the final two commands printed by the launcher. Character scenes retain their Flow audio; narrator scenes use their narration file and have their Flow audio muted.
 
@@ -42,7 +50,7 @@ cd scripting
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-$env:GROQ_API_KEY = "your key"
+$env:OPENAI_API_KEY = "your key" # or set GROQ_API_KEY instead
 python -m pipeline.cli new --project-id village-well --method B --concept "एक सूखे कुएँ में लौटती चूड़ैल" --ideas 5
 python -m pipeline.cli choose --project projects\village-well\pipeline.json --index 2
 python -m pipeline.cli run --project projects\village-well\pipeline.json --language Hindi --duration 8 --monster "चुड़ैल"
