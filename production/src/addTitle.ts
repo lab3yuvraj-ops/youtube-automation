@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { markReviewPending } from './reviewState.js';
 
 const exec = promisify(execFile);
 const arg = (name: string, fallback?: string) => {
@@ -12,6 +13,7 @@ const arg = (name: string, fallback?: string) => {
 const input = path.resolve(arg('--input') ?? 'outputs/last-bus-narrated-synced.mp4');
 const output = path.resolve(arg('--output') ?? 'outputs/last-bus-title.mp4');
 const title = arg('--title', 'AAKHRI BUS KI TEESRI SEAT')!;
+const projectFile = arg('--project');
 const escapeAss = (value: string) => value.replace(/[{}\\]/g, (char) => `\\${char}`);
 const ass = path.join(path.dirname(output), '.last-bus-title.ass');
 await fs.writeFile(ass, `[Script Info]
@@ -35,4 +37,8 @@ await exec('ffmpeg', [
   '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p',
   '-c:a', 'copy', '-movflags', '+faststart', output,
 ], { maxBuffer: 1024 * 1024 * 8 });
-console.log(JSON.stringify({ input, output, title, titleEndSeconds: 3.7 }));
+const review = projectFile ? await markReviewPending(path.resolve(projectFile), output, title) : undefined;
+console.log(JSON.stringify({
+  input, output, title, titleEndSeconds: 3.7, review,
+  questions: review ? ['Should I approve this video?', 'Is it good to post on YouTube or not?'] : undefined,
+}));

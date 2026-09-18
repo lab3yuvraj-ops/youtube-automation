@@ -102,6 +102,33 @@ npm run mix-narration -- --input-dir .\outputs\youtube-automation-last-bus --nar
 
 For every scene with a narration file, the mixer mutes that source clip's original audio and places the narration over it. Character-dialogue scenes do not receive a narration file, so their native Flow voice remains untouched. The same audio/video fade transition is applied between every scene.
 
+### Approval and optional YouTube publishing
+
+The final title command printed by `start-video.ps1` includes `--project`. Once it finishes, the project enters `awaiting_approval` and asks two questions: “Should I approve this video?” and “Is it good to post on YouTube or not?” The answer is persisted in `pipeline.json`, so a later session can continue safely.
+
+```powershell
+cd production
+npm run review -- approve --project ..\scripting\projects\your-project\pipeline.json
+# or, if the result is not accepted:
+npm run review -- reject --project ..\scripting\projects\your-project\pipeline.json
+```
+
+A rejection prints the follow-up question, “Should I regenerate the video?” No regeneration or publishing occurs automatically.
+
+Zernio is optional and is used only after approval. Add a local `ZERNIO_API_KEY` to `scripting/.env` or your environment; the example value is intentionally blank and ignored by Git. Verify the connected account with this read-only call:
+
+```powershell
+npm run zernio -- test
+```
+
+To publish later, first connect YouTube in Zernio, then provide its account ID and a publicly reachable MP4 URL. The command defaults to a safer private visibility and requires a separate external-write confirmation:
+
+```powershell
+npm run zernio -- publish -- --project ..\scripting\projects\your-project\pipeline.json --account-id YOUR_ZERNIO_YOUTUBE_ACCOUNT_ID --media-url https://cdn.example.com/final.mp4 --title "Your title" --visibility private --confirm-publish YES
+```
+
+The publisher sends Zernio's YouTube AI-disclosure field (`containsSyntheticMedia: true`). It will refuse to run unless the local project is approved. It never uploads or posts merely from a key being present.
+
 ## Configuration
 
 Set optional production environment variables:
@@ -112,6 +139,7 @@ FLOW_PROJECT_NAME=Hindi Folk Horror
 FLOW_IMAGE_MODEL=
 FLOW_VIDEO_MODEL=
 FLOW_RATE_LIMIT_MS=1500
+ZERNIO_API_KEY=
 ```
 
 Selectors are data, not logic. If Flow changes, update the selector candidates and the wait predicates in `production/src/flowClient.ts`.

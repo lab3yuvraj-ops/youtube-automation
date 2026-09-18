@@ -1,4 +1,4 @@
 {
   "$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","required":["schema_version","project_id","idea","script","characters","backgrounds","scenes","publishing"],
-  "properties":{"schema_version":{"type":"string"},"project_id":{"type":"string"},"idea":{"type":"object"},"script":{"type":"object"},"characters":{"type":"array"},"backgrounds":{"type":"array"},"scenes":{"type":"array"},"publishing":{"type":"object"}}
+  "properties":{"schema_version":{"type":"string"},"project_id":{"type":"string"},"idea":{"type":"object"},"script":{"type":"object"},"characters":{"type":"array"},"backgrounds":{"type":"array"},"scenes":{"type":"array"},"publishing":{"type":"object"},"review":{"type":"object","properties":{"status":{"enum":["awaiting_approval","approved","rejected","posted","failed"]},"video_path":{"type":"string"},"title":{"type":"string"}},"required":["status","video_path"]}}
 }
