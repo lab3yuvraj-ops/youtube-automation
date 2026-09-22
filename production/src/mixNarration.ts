@@ -69,11 +69,13 @@ for (let i = 0; i < sceneFiles.length; i++) {
   if (voiceInput === undefined) {
     graph += `;[${i}:a]atrim=duration=${outputDurations[i].toFixed(3)},asetpts=PTS-STARTPTS[a${i}]`;
   } else {
-    // Narration replaces all source audio for its own scene, preventing
-    // ambient/audio clutter under the Hindi narrator.
-    graph += `;[${i}:a]volume=0,apad,atrim=duration=${outputDurations[i].toFixed(3)},asetpts=PTS-STARTPTS[silent${i}]`;
+    // Keep the Flow ambience and scene SFX. They duck beneath the Hindi
+    // narration instead of being muted, so narration gaps never become
+    // dead air. Character scenes (without narration) remain fully native.
+    graph += `;[${i}:a]apad,atrim=duration=${outputDurations[i].toFixed(3)},asetpts=PTS-STARTPTS[source${i}]`;
     graph += `;[${voiceInput}:a]asetpts=PTS-STARTPTS,apad,atrim=duration=${outputDurations[i].toFixed(3)}[voice${i}]`;
-    graph += `;[silent${i}][voice${i}]amix=inputs=2:duration=first:normalize=0[a${i}]`;
+    graph += `;[source${i}][voice${i}]sidechaincompress=threshold=0.025:ratio=12:attack=80:release=500[duckedsource${i}]`;
+    graph += `;[duckedsource${i}][voice${i}]amix=inputs=2:duration=first:normalize=0[a${i}]`;
   }
 }
 let runningDuration = outputDurations[0];

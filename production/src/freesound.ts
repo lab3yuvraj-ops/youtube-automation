@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
+const dotenvFile = path.resolve(moduleDirectory, '../../scripting/.env');
 
 const arg = (name: string, fallback?: string): string | undefined => {
   const index = process.argv.indexOf(name);
@@ -11,7 +12,6 @@ const arg = (name: string, fallback?: string): string | undefined => {
 };
 
 async function loadLocalEnvironment(): Promise<void> {
-  const dotenvFile = path.resolve(moduleDirectory, '../../scripting/.env');
   try {
     const contents = await fs.readFile(dotenvFile, 'utf8');
     for (const rawLine of contents.split(/\r?\n/)) {
@@ -50,9 +50,32 @@ async function accessToken(): Promise<string> {
   return data.access_token;
 }
 
+async function exchangeAuthorizationCode(code: string): Promise<string> {
+  const form = new URLSearchParams({
+    grant_type: 'authorization_code',
+    client_id: required('FREESOUND_CLIENT_ID'),
+    client_secret: required('FREESOUND_CLIENT_SECRET'),
+    code,
+    redirect_uri: 'https://freesound.org/home/app_permissions/permission_granted/',
+  });
+  const response = await fetch('https://freesound.org/apiv2/oauth2/access_token/', { method: 'POST', body: form });
+  if (!response.ok) throw new Error(`Freesound authorization-code exchange failed (${response.status}).`);
+  const data = await response.json() as { access_token?: string; refresh_token?: string };
+  if (!data.access_token || !data.refresh_token) throw new Error('Freesound did not return an access and refresh token pair.');
+  const contents = await fs.readFile(dotenvFile, 'utf8');
+  const replacement = `FREESOUND_REFRESH_TOKEN=${data.refresh_token}`;
+  const updated = /^FREESOUND_REFRESH_TOKEN=.*$/m.test(contents)
+    ? contents.replace(/^FREESOUND_REFRESH_TOKEN=.*$/m, replacement)
+    : `${contents.trimEnd()}\n${replacement}\n`;
+  await fs.writeFile(dotenvFile, updated, 'utf8');
+  process.env.FREESOUND_REFRESH_TOKEN = data.refresh_token;
+  return data.access_token;
+}
+
 const query = arg('--query', 'dark Indian folk horror supernatural suspense ambient, no vocals')!;
 const output = path.resolve(arg('--output') ?? 'outputs/background-music.mp3');
-const token = await accessToken();
+const authorizationCode = arg('--authorization-code');
+const token = authorizationCode ? await exchangeAuthorizationCode(authorizationCode) : await accessToken();
 const search = new URL('https://freesound.org/apiv2/search/text/');
 search.searchParams.set('query', query);
 search.searchParams.set('filter', 'license:"Creative Commons 0" duration:[30 TO 600]');
@@ -69,4 +92,4 @@ if (!audioResponse.ok || !audioResponse.body) throw new Error(`Freesound preview
 await fs.mkdir(path.dirname(output), { recursive: true });
 await fs.writeFile(output, Buffer.from(await audioResponse.arrayBuffer()));
 await fs.writeFile(`${output}.license.json`, `${JSON.stringify({ provider: 'Freesound', id: sound.id, name: sound.name, creator: sound.username, license: sound.license, source: sound.url, query, downloaded_at: new Date().toISOString() }, null, 2)}\n`);
-console.log(JSON.stringify({ output, sound: { id: sound.id, name: sound.name, license: sound.license, durationSeconds: sound.duration }, query }, null, 2));
+console.log(JSON.stringify({ output, refreshed_authorization: Boolean(authorizationCode), sound: { id: sound.id, name: sound.name, license: sound.license, durationSeconds: sound.duration }, query }, null, 2));
