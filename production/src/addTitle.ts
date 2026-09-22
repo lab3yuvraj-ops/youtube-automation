@@ -14,7 +14,18 @@ const input = path.resolve(arg('--input') ?? 'outputs/last-bus-narrated-synced.m
 const output = path.resolve(arg('--output') ?? 'outputs/last-bus-title.mp4');
 const title = arg('--title', 'AAKHRI BUS KI TEESRI SEAT')!;
 const projectFile = arg('--project');
+const intro = path.resolve(arg('--intro') ?? 'assets/channel-intro.mp4');
+const introSeconds = 5;
+const introFadeSeconds = 0.5;
 const escapeAss = (value: string) => value.replace(/[{}\\]/g, (char) => `\\${char}`);
+await fs.access(intro);
+async function resolution(file: string): Promise<{ width: number; height: number }> {
+  const { stdout } = await exec('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=s=x:p=0', file]);
+  const [width, height] = stdout.trim().split('x').map(Number);
+  if (!Number.isInteger(width) || !Number.isInteger(height)) throw new Error(`Could not read video dimensions for ${file}`);
+  return { width, height };
+}
+const storySize = await resolution(input);
 const ass = path.join(path.dirname(output), '.last-bus-title.ass');
 await fs.writeFile(ass, `[Script Info]
 ScriptType: v4.00+
@@ -30,15 +41,23 @@ Dialogue: 0,0:00:00.00,0:00:03.70,Title,,0,0,0,,{\\fad(400,700)\\fscx72\\fscy72\
 Dialogue: 1,0:00:00.00,0:00:03.70,Kicker,,0,0,0,,{\\fad(400,700)\\fscx72\\fscy72\\t(0,400,\\fscx100\\fscy100)}H I N D I   F O L K   H O R R O R
 `);
 const escapedAss = ass.replace(/\\/g, '/').replace(':', '\\:');
-const vf = `subtitles=filename='${escapedAss}':fontsdir='C\\:/Windows/Fonts'`;
+const mainTitleFilter = `subtitles=filename='${escapedAss}':fontsdir='C\\:/Windows/Fonts'`;
+const graph = [
+  `[0:v]trim=duration=${introSeconds},scale=${storySize.width}:${storySize.height}:force_original_aspect_ratio=decrease,pad=${storySize.width}:${storySize.height}:(ow-iw)/2:(oh-ih)/2,fps=30,settb=AVTB,setsar=1,setpts=PTS-STARTPTS[introvideo]`,
+  `[1:v]${mainTitleFilter},scale=${storySize.width}:${storySize.height},fps=30,settb=AVTB,setsar=1,setpts=PTS-STARTPTS[storyvideo]`,
+  `[introvideo][storyvideo]xfade=transition=fade:duration=${introFadeSeconds}:offset=${introSeconds - introFadeSeconds}[video]`,
+  `[0:a]atrim=duration=${introSeconds},asetpts=PTS-STARTPTS[introaudio]`,
+  `[1:a]asetpts=PTS-STARTPTS[storyaudio]`,
+  `[introaudio][storyaudio]acrossfade=d=${introFadeSeconds}:c1=tri:c2=tri[audio]`,
+].join(';');
 
 await exec('ffmpeg', [
-  '-hide_banner', '-loglevel', 'error', '-y', '-i', input, '-vf', vf, '-map', '0:v:0', '-map', '0:a?',
+  '-hide_banner', '-loglevel', 'error', '-y', '-i', intro, '-i', input, '-filter_complex', graph, '-map', '[video]', '-map', '[audio]',
   '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p',
-  '-c:a', 'copy', '-movflags', '+faststart', output,
+  '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', output,
 ], { maxBuffer: 1024 * 1024 * 8 });
 const review = projectFile ? await markReviewPending(path.resolve(projectFile), output, title) : undefined;
 console.log(JSON.stringify({
-  input, output, title, titleEndSeconds: 3.7, review,
+  input, output, title, titleEndSeconds: 3.7, intro, introSeconds, review,
   questions: review ? ['Should I approve this video?', 'Is it good to post on YouTube or not?'] : undefined,
 }));

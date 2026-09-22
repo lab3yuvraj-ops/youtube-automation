@@ -102,6 +102,20 @@ npm run mix-narration -- --input-dir .\outputs\youtube-automation-last-bus --nar
 
 For every scene with a narration file, the mixer mutes that source clip's original audio and places the narration over it. Character-dialogue scenes do not receive a narration file, so their native Flow voice remains untouched. The same audio/video fade transition is applied between every scene.
 
+### Channel intro, music, and subtitle policy
+
+Every final export starts with the first five seconds of the private channel intro at `production/assets/channel-intro.mp4`, then cross-fades into the titled story. The intro is intentionally not committed; each clone must supply its own licensed copy at that path.
+
+The finishing commands printed by `start-video.ps1` download a Creative Commons Zero Freesound horror music bed, loop it under the story, and automatically duck it below Hindi narration and character dialogue. Set these local-only values in `scripting/.env` before the audio step:
+
+```text
+FREESOUND_CLIENT_ID=
+FREESOUND_CLIENT_SECRET=
+FREESOUND_REFRESH_TOKEN=
+```
+
+The music downloader saves a license record beside the downloaded file. Final FFmpeg exports map only video and audio, so soft subtitle streams are not carried into the completed video. The pipeline does not add subtitles. Burned-in captions or third-party watermarks must be avoided by obtaining a clean source export; they are not removed or concealed by this project.
+
 ### Approval and optional YouTube publishing
 
 The final title command printed by `start-video.ps1` includes `--project`. Once it finishes, the project enters `awaiting_approval` and asks two questions: “Should I approve this video?” and “Is it good to post on YouTube or not?” The answer is persisted in `pipeline.json`, so a later session can continue safely.
@@ -140,6 +154,9 @@ FLOW_IMAGE_MODEL=
 FLOW_VIDEO_MODEL=
 FLOW_RATE_LIMIT_MS=1500
 ZERNIO_API_KEY=
+FREESOUND_CLIENT_ID=
+FREESOUND_CLIENT_SECRET=
+FREESOUND_REFRESH_TOKEN=
 ```
 
 Selectors are data, not logic. If Flow changes, update the selector candidates and the wait predicates in `production/src/flowClient.ts`.

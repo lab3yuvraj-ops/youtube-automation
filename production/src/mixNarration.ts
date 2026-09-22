@@ -17,6 +17,7 @@ const arg = (name: string, fallback?: string) => {
 const inputDir = path.resolve(arg('--input-dir') ?? 'outputs');
 const narrationDir = path.resolve(arg('--narration-dir') ?? path.join(inputDir, 'narration'));
 const output = path.resolve(arg('--output') ?? path.join(inputDir, 'final-narrated.mp4'));
+const bgm = arg('--bgm') ? path.resolve(arg('--bgm')!) : undefined;
 const transition = Number(arg('--transition', '0.35'));
 if (!Number.isFinite(transition) || transition <= 0) throw new Error('--transition must be greater than 0');
 
@@ -43,6 +44,7 @@ async function duration(file: string): Promise<number> {
 
 const durations = await Promise.all(sceneFiles.map(duration));
 const narrationInputs = [...narrationNames.entries()].sort(([a], [b]) => a - b);
+if (bgm) await fs.access(bgm);
 const narrationDurations = new Map(await Promise.all(narrationInputs.map(async ([scene, file]) => [scene, await duration(file)] as const)));
 // Narrator shots should end with the spoken thought. Keep a tiny visual tail,
 // but do not pad a short narration with several seconds of silence.
@@ -86,11 +88,18 @@ for (let i = 1; i < sceneFiles.length; i++) {
   audio = nextAudio;
   runningDuration += outputDurations[i] - transition;
 }
+if (bgm) {
+  const bgmInput = sceneFiles.length + narrationInputs.length;
+  graph += `;[${bgmInput}:a]aloop=loop=-1:size=2147483647,volume=0.16,atrim=duration=${runningDuration.toFixed(3)},asetpts=PTS-STARTPTS[bgm]`;
+  graph += `;[bgm][${audio}]sidechaincompress=threshold=0.025:ratio=10:attack=80:release=500[duckedbgm]`;
+  graph += `;[${audio}][duckedbgm]amix=inputs=2:duration=first:normalize=0[mixedaudio]`;
+  audio = 'mixedaudio';
+}
 
 await fs.mkdir(path.dirname(output), { recursive: true });
 await exec('ffmpeg', [
-  '-y', ...sceneFiles.flatMap((file) => ['-i', file]), ...narrationInputs.flatMap(([, file]) => ['-i', file]),
+  '-y', ...sceneFiles.flatMap((file) => ['-i', file]), ...narrationInputs.flatMap(([, file]) => ['-i', file]), ...(bgm ? ['-i', bgm] : []),
   '-filter_complex', graph, '-map', `[${video}]`, '-map', `[${audio}]`, '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
   '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', output,
 ], { maxBuffer: 1024 * 1024 * 8 });
-console.log(JSON.stringify({ output, clips: sceneFiles.length, narrationScenes: narrationInputs.map(([scene]) => scene), transitionSeconds: transition, durationSeconds: Number(runningDuration.toFixed(3)) }));
+console.log(JSON.stringify({ output, clips: sceneFiles.length, narrationScenes: narrationInputs.map(([scene]) => scene), bgm, transitionSeconds: transition, durationSeconds: Number(runningDuration.toFixed(3)) }));

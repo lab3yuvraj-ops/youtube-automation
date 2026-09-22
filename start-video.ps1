@@ -36,5 +36,6 @@ Write-Host "Flow assets are complete. Generate AI Studio narration files from: $
 Write-Host "Download them into: $output\narration"
 Write-Host "Then run:"
 Write-Host "cd $repoRoot\production"
-Write-Host "npm run mix-narration -- --input-dir $output --narration-dir $output\narration --output $output\final-narrated.mp4 --transition 0.35"
+Write-Host "npm run freesound -- --output $output\background-music.mp3 --query `\"dark Indian folk horror suspense, no vocals`\""
+Write-Host "npm run mix-narration -- --input-dir $output --narration-dir $output\narration --bgm $output\background-music.mp3 --output $output\final-narrated.mp4 --transition 0.35"
 Write-Host "npm run add-title -- --input $output\final-narrated.mp4 --output $output\final.mp4 --project $pipeline --title `"$Title`""

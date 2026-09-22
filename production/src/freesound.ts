@@ -1,0 +1,72 @@
+/** Download one CC0 horror music bed from Freesound using a local OAuth refresh token. */
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
+
+const arg = (name: string, fallback?: string): string | undefined => {
+  const index = process.argv.indexOf(name);
+  return index >= 0 ? process.argv[index + 1] ?? fallback : fallback;
+};
+
+async function loadLocalEnvironment(): Promise<void> {
+  const dotenvFile = path.resolve(moduleDirectory, '../../scripting/.env');
+  try {
+    const contents = await fs.readFile(dotenvFile, 'utf8');
+    for (const rawLine of contents.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith('#')) continue;
+      const separator = line.indexOf('=');
+      if (separator < 1) continue;
+      const name = line.slice(0, separator).trim();
+      const value = line.slice(separator + 1).trim().replace(/^['"]|['"]$/g, '');
+      if (name && value && !process.env[name]) process.env[name] = value;
+    }
+  } catch (error: any) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
+}
+
+await loadLocalEnvironment();
+
+function required(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`Set ${name} locally before downloading music. Never commit credentials.`);
+  return value;
+}
+
+async function accessToken(): Promise<string> {
+  const form = new URLSearchParams({
+    grant_type: 'refresh_token',
+    client_id: required('FREESOUND_CLIENT_ID'),
+    client_secret: required('FREESOUND_CLIENT_SECRET'),
+    refresh_token: required('FREESOUND_REFRESH_TOKEN'),
+  });
+  const response = await fetch('https://freesound.org/apiv2/oauth2/access_token/', { method: 'POST', body: form });
+  if (!response.ok) throw new Error(`Freesound token refresh failed (${response.status}).`);
+  const data = await response.json() as { access_token?: string };
+  if (!data.access_token) throw new Error('Freesound did not return an access token.');
+  return data.access_token;
+}
+
+const query = arg('--query', 'dark Indian folk horror supernatural suspense ambient, no vocals')!;
+const output = path.resolve(arg('--output') ?? 'outputs/background-music.mp3');
+const token = await accessToken();
+const search = new URL('https://freesound.org/apiv2/search/text/');
+search.searchParams.set('query', query);
+search.searchParams.set('filter', 'license:"Creative Commons 0" duration:[30 TO 600]');
+search.searchParams.set('sort', 'rating_desc');
+search.searchParams.set('page_size', '10');
+search.searchParams.set('fields', 'id,name,license,username,previews,duration,url');
+const searchResponse = await fetch(search, { headers: { Authorization: `Bearer ${token}` } });
+if (!searchResponse.ok) throw new Error(`Freesound search failed (${searchResponse.status}).`);
+const searchData = await searchResponse.json() as { results?: Array<{ id: number; name: string; license: string; username: string; duration: number; url: string; previews?: Record<string, string> }> };
+const sound = searchData.results?.find((candidate) => candidate.previews?.['preview-hq-mp3']);
+if (!sound?.previews?.['preview-hq-mp3']) throw new Error('No suitable CC0 Freesound music result was found. Try a different --query.');
+const audioResponse = await fetch(sound.previews['preview-hq-mp3']);
+if (!audioResponse.ok || !audioResponse.body) throw new Error(`Freesound preview download failed (${audioResponse.status}).`);
+await fs.mkdir(path.dirname(output), { recursive: true });
+await fs.writeFile(output, Buffer.from(await audioResponse.arrayBuffer()));
+await fs.writeFile(`${output}.license.json`, `${JSON.stringify({ provider: 'Freesound', id: sound.id, name: sound.name, creator: sound.username, license: sound.license, source: sound.url, query, downloaded_at: new Date().toISOString() }, null, 2)}\n`);
+console.log(JSON.stringify({ output, sound: { id: sound.id, name: sound.name, license: sound.license, durationSeconds: sound.duration }, query }, null, 2));
