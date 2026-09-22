@@ -18,8 +18,14 @@ const inputDir = path.resolve(arg('--input-dir') ?? 'outputs');
 const narrationDir = path.resolve(arg('--narration-dir') ?? path.join(inputDir, 'narration'));
 const output = path.resolve(arg('--output') ?? path.join(inputDir, 'final-narrated.mp4'));
 const bgm = arg('--bgm') ? path.resolve(arg('--bgm')!) : undefined;
+// The Google AI Studio narration is quiet by design. Compression with 12 dB
+// makeup yields a measured ~-14 LUFS narration against a -20 LUFS music bed.
+const narrationMakeupDb = Number(arg('--narration-makeup-db', '12'));
+const bgmLufs = Number(arg('--bgm-lufs', '-20'));
 const transition = Number(arg('--transition', '0.35'));
 if (!Number.isFinite(transition) || transition <= 0) throw new Error('--transition must be greater than 0');
+if (!Number.isFinite(narrationMakeupDb) || narrationMakeupDb < 0 || narrationMakeupDb > 24) throw new Error('--narration-makeup-db must be between 0 and 24.');
+if (!Number.isFinite(bgmLufs) || bgmLufs > -5 || bgmLufs < -40) throw new Error('--bgm-lufs must be between -40 and -5.');
 
 const sceneFiles = (await fs.readdir(inputDir))
   .filter((file) => /^scene-\d{4}\.mp4$/i.test(file))
@@ -73,7 +79,7 @@ for (let i = 0; i < sceneFiles.length; i++) {
     // narration instead of being muted, so narration gaps never become
     // dead air. Character scenes (without narration) remain fully native.
     graph += `;[${i}:a]apad,atrim=duration=${outputDurations[i].toFixed(3)},asetpts=PTS-STARTPTS[source${i}]`;
-    graph += `;[${voiceInput}:a]asetpts=PTS-STARTPTS,apad,atrim=duration=${outputDurations[i].toFixed(3)}[voice${i}]`;
+    graph += `;[${voiceInput}:a]acompressor=threshold=0.05:ratio=8:attack=5:release=100:makeup=${narrationMakeupDb},alimiter=limit=0.9:level=0,asetpts=PTS-STARTPTS,apad,atrim=duration=${outputDurations[i].toFixed(3)}[voice${i}]`;
     graph += `;[source${i}][voice${i}]sidechaincompress=threshold=0.025:ratio=12:attack=80:release=500[duckedsource${i}]`;
     graph += `;[duckedsource${i}][voice${i}]amix=inputs=2:duration=first:normalize=0[a${i}]`;
   }
@@ -92,9 +98,8 @@ for (let i = 1; i < sceneFiles.length; i++) {
 }
 if (bgm) {
   const bgmInput = sceneFiles.length + narrationInputs.length;
-  graph += `;[${bgmInput}:a]aloop=loop=-1:size=2147483647,volume=0.16,atrim=duration=${runningDuration.toFixed(3)},asetpts=PTS-STARTPTS[bgm]`;
-  graph += `;[bgm][${audio}]sidechaincompress=threshold=0.025:ratio=10:attack=80:release=500[duckedbgm]`;
-  graph += `;[${audio}][duckedbgm]amix=inputs=2:duration=first:normalize=0[mixedaudio]`;
+  graph += `;[${bgmInput}:a]aloop=loop=-1:size=2147483647,loudnorm=I=${bgmLufs}:TP=-5:LRA=7,atrim=duration=${runningDuration.toFixed(3)},asetpts=PTS-STARTPTS[bgm]`;
+  graph += `;[${audio}][bgm]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95:level=0[mixedaudio]`;
   audio = 'mixedaudio';
 }
 
@@ -104,4 +109,4 @@ await exec('ffmpeg', [
   '-filter_complex', graph, '-map', `[${video}]`, '-map', `[${audio}]`, '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
   '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', output,
 ], { maxBuffer: 1024 * 1024 * 8 });
-console.log(JSON.stringify({ output, clips: sceneFiles.length, narrationScenes: narrationInputs.map(([scene]) => scene), bgm, transitionSeconds: transition, durationSeconds: Number(runningDuration.toFixed(3)) }));
+console.log(JSON.stringify({ output, clips: sceneFiles.length, narrationScenes: narrationInputs.map(([scene]) => scene), narrationMakeupDb, bgm, bgmLufs, transitionSeconds: transition, durationSeconds: Number(runningDuration.toFixed(3)) }));
