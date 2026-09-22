@@ -1,4 +1,4 @@
-/** Add a continuous music bed without replacing the existing approved audio track. */
+/** Add a low, continuous music bed without replacing or ducking the approved audio track. */
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import path from 'node:path';
@@ -11,15 +11,14 @@ const arg = (name: string, fallback?: string) => {
 const input = path.resolve(arg('--input') ?? 'input.mp4');
 const bgm = path.resolve(arg('--bgm') ?? 'background-music.mp3');
 const output = path.resolve(arg('--output') ?? 'output.mp4');
-const volume = Number(arg('--volume', '0.13'));
+const volume = Number(arg('--volume', '0.11'));
 if (!Number.isFinite(volume) || volume <= 0 || volume > 1) throw new Error('--volume must be between 0 and 1.');
 const { stdout } = await exec('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', input]);
 const duration = Number(stdout.trim());
 if (!Number.isFinite(duration) || duration <= 0) throw new Error('Could not determine the input duration.');
 const graph = [
   `[1:a]aloop=loop=-1:size=2147483647,volume=${volume},atrim=duration=${duration.toFixed(3)},asetpts=PTS-STARTPTS[bgm]`,
-  `[bgm][0:a]sidechaincompress=threshold=0.025:ratio=10:attack=80:release=500[duckedbgm]`,
-  `[0:a][duckedbgm]amix=inputs=2:duration=first:normalize=0[audio]`,
+  `[0:a][bgm]amix=inputs=2:duration=first:normalize=0[audio]`,
 ].join(';');
 await exec('ffmpeg', [
   '-hide_banner', '-loglevel', 'error', '-y', '-i', input, '-i', bgm, '-filter_complex', graph,
