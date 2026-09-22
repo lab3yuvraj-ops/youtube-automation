@@ -11,7 +11,9 @@ const arg = (name: string, fallback?: string) => {
 const input = path.resolve(arg('--input') ?? 'input.mp4');
 const bgm = path.resolve(arg('--bgm') ?? 'background-music.mp3');
 const output = path.resolve(arg('--output') ?? 'output.mp4');
-const volume = Number(arg('--volume', '0.11'));
+// The CC0 ambience source is itself deliberately quiet.  A 55% gain keeps it
+// audible all the way through while still sitting well below dialogue.
+const volume = Number(arg('--volume', '0.55'));
 if (!Number.isFinite(volume) || volume <= 0 || volume > 1) throw new Error('--volume must be between 0 and 1.');
 const { stdout } = await exec('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', input]);
 const duration = Number(stdout.trim());
