@@ -15,10 +15,12 @@ const output = path.resolve(arg('--output') ?? 'outputs/last-bus-title.mp4');
 const title = arg('--title', 'AAKHRI BUS KI TEESRI SEAT')!;
 const projectFile = arg('--project');
 const intro = path.resolve(arg('--intro') ?? 'assets/channel-intro.mp4');
+const logo = path.resolve(arg('--logo') ?? 'assets/channel-logo.png');
 const introSeconds = 5;
 const introFadeSeconds = 0.5;
 const escapeAss = (value: string) => value.replace(/[{}\\]/g, (char) => `\\${char}`);
 await fs.access(intro);
+await fs.access(logo);
 async function resolution(file: string): Promise<{ width: number; height: number }> {
   const { stdout } = await exec('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=s=x:p=0', file]);
   const [width, height] = stdout.trim().split('x').map(Number);
@@ -26,6 +28,11 @@ async function resolution(file: string): Promise<{ width: number; height: number
   return { width, height };
 }
 const storySize = await resolution(input);
+// Reference placement at 1280x720: a 76px-square logo, inset 72px from the
+// right and 75px from the bottom. Scale those proportions for every export.
+const logoHeight = Math.round(storySize.height * 0.1056);
+const logoRight = Math.round(storySize.width * 0.05625);
+const logoBottom = Math.round(storySize.height * 0.10417);
 const ass = path.join(path.dirname(output), '.last-bus-title.ass');
 await fs.writeFile(ass, `[Script Info]
 ScriptType: v4.00+
@@ -45,19 +52,22 @@ const mainTitleFilter = `subtitles=filename='${escapedAss}':fontsdir='C\\:/Windo
 const graph = [
   `[0:v]trim=duration=${introSeconds},scale=${storySize.width}:${storySize.height}:force_original_aspect_ratio=decrease,pad=${storySize.width}:${storySize.height}:(ow-iw)/2:(oh-ih)/2,fps=30,settb=AVTB,setsar=1,setpts=PTS-STARTPTS[introvideo]`,
   `[1:v]${mainTitleFilter},scale=${storySize.width}:${storySize.height},fps=30,settb=AVTB,setsar=1,setpts=PTS-STARTPTS[storyvideo]`,
-  `[introvideo][storyvideo]xfade=transition=fade:duration=${introFadeSeconds}:offset=${introSeconds - introFadeSeconds}[video]`,
+  `[introvideo][storyvideo]xfade=transition=fade:duration=${introFadeSeconds}:offset=${introSeconds - introFadeSeconds}[joinedvideo]`,
+  `[2:v]format=rgba,scale=-1:${logoHeight}[brand]`,
+  `[joinedvideo][brand]overlay=x=W-w-${logoRight}:y=H-h-${logoBottom}:format=auto:shortest=1[video]`,
   `[0:a]atrim=duration=${introSeconds},asetpts=PTS-STARTPTS[introaudio]`,
   `[1:a]asetpts=PTS-STARTPTS[storyaudio]`,
   `[introaudio][storyaudio]acrossfade=d=${introFadeSeconds}:c1=tri:c2=tri[audio]`,
 ].join(';');
 
 await exec('ffmpeg', [
-  '-hide_banner', '-loglevel', 'error', '-y', '-i', intro, '-i', input, '-filter_complex', graph, '-map', '[video]', '-map', '[audio]',
+  '-hide_banner', '-loglevel', 'error', '-y', '-i', intro, '-i', input, '-loop', '1', '-i', logo, '-filter_complex', graph, '-map', '[video]', '-map', '[audio]',
   '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p',
   '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', output,
 ], { maxBuffer: 1024 * 1024 * 8 });
 const review = projectFile ? await markReviewPending(path.resolve(projectFile), output, title) : undefined;
 console.log(JSON.stringify({
-  input, output, title, titleEndSeconds: 3.7, intro, introSeconds, review,
+  input, output, title, titleEndSeconds: 3.7, intro, introSeconds, logo,
+  logoPlacement: { height: logoHeight, right: logoRight, bottom: logoBottom }, review,
   questions: review ? ['Should I approve this video?', 'Is it good to post on YouTube or not?'] : undefined,
 }));

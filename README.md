@@ -104,7 +104,7 @@ For every scene with a narration file, the mixer mutes that source clip's origin
 
 ### Channel intro, music, and subtitle policy
 
-Every final export starts with the first five seconds of the private channel intro at `production/assets/channel-intro.mp4`, then cross-fades into the titled story. The intro is intentionally not committed; each clone must supply its own licensed copy at that path.
+Every final export starts with the first five seconds of the private channel intro at `production/assets/channel-intro.mp4`, then cross-fades into the titled story. Put a transparent `channel-logo.png` beside it. The logo is rendered on every final video in the lower-right reference position, inset from the edges (at 1280x720: 76px high, 72px from the right, 75px from the bottom). Both private assets are intentionally not committed; each clone must supply its own licensed copies.
 
 The finishing commands printed by `start-video.ps1` download a Creative Commons Zero Freesound horror music bed, loop it under the story, and automatically duck it below Hindi narration and character dialogue. Set these local-only values in `scripting/.env` before the audio step:
 

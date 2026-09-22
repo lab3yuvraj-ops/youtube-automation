@@ -5,6 +5,7 @@
 *.pem
 *.key
 production/chrome-profile/
+production/assets/channel-logo.*
 .railway/
 
 # Generated projects and media
