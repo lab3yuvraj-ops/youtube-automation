@@ -11,9 +11,9 @@ const arg = (name: string, fallback?: string) => {
 const input = path.resolve(arg('--input') ?? 'input.mp4');
 const bgm = path.resolve(arg('--bgm') ?? 'background-music.mp3');
 const output = path.resolve(arg('--output') ?? 'output.mp4');
-// Use a measured music target rather than raw source gain. -15 LUFS is a
-// deliberately prominent horror bed; the final limiter protects the mix.
-const targetLufs = Number(arg('--target-lufs', '-15'));
+// Use a measured music target rather than raw source gain. -20.9 LUFS is the
+// established continuous horror-bed level; the final limiter protects the mix.
+const targetLufs = Number(arg('--target-lufs', '-20.9'));
 const volume = Number(arg('--volume', '1'));
 if (!Number.isFinite(targetLufs) || targetLufs > -5 || targetLufs < -40) throw new Error('--target-lufs must be between -40 and -5.');
 if (!Number.isFinite(volume) || volume <= 0 || volume > 1) throw new Error('--volume must be between 0 and 1.');

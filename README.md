@@ -24,7 +24,7 @@ The scripting stages (idea, story, characters, backgrounds, scenes, and publishi
 
 If both keys exist, OpenAI is used. Set `OPENAI_MODEL` or `GROQ_MODEL` in `scripting/.env` to override the default. Keys are never committed; `.env` is ignored by Git.
 
-After Flow finishes, generate the listed narrator files in Google AI Studio. If Google AI Studio does not generate after two attempts, the operating rule is to pause and ask the human to click **Run**. Put files in `production/outputs/<project>/narration/`, then run the final two commands printed by the launcher. Character scenes retain their Flow audio; narrator scenes use their narration file and have their Flow audio muted.
+After Flow finishes, generate every listed narrator file in Google AI Studio. If Google AI Studio does not generate after two attempts, pause and ask the human to click **Run**. Put files in `production/outputs/<project>/narration/`, then run the final commands printed by the launcher. Character scenes retain their Flow audio unchanged. Narrator scenes use their Google AI Studio file, while scene ambience/SFX can remain quietly underneath.
 
 ## Important prompt-template contract
 
@@ -97,16 +97,16 @@ Use the text and voice direction in `production/outputs/<project>/narration-mani
 
 ```powershell
 cd production
-npm run mix-narration -- --input-dir .\outputs\youtube-automation-last-bus --narration-dir .\outputs\youtube-automation-last-bus\narration --output .\outputs\youtube-automation-last-bus\final-narrated.mp4 --transition 0.35
+npm run mix-narration -- --input-dir .\outputs\youtube-automation-last-bus --narration-dir .\outputs\youtube-automation-last-bus\narration --bgm .\outputs\youtube-automation-last-bus\background-music.mp3 --narration-makeup-db 12 --bgm-lufs -20.9 --output .\outputs\youtube-automation-last-bus\final-narrated.mp4 --transition 0.35
 ```
 
-For every scene with a narration file, the mixer mutes that source clip's original audio and places the narration over it. Character-dialogue scenes do not receive a narration file, so their native Flow voice remains untouched. The same audio/video fade transition is applied between every scene.
+For every scene with a narration file, the mixer processes only the Google AI Studio narration through the tested speech-compression/limiter chain (approximately -14 LUFS) and retains low scene ambience/SFX beneath it. Character-dialogue scenes do not receive a narration file, so their native Flow voice remains untouched. The continuous background music is normalized to -20.9 LUFS. The same audio/video fade transition is applied between every scene, and clips use Flow's natural durations rather than a fixed length.
 
 ### Channel intro, music, and subtitle policy
 
 Every final export starts with the first five seconds of the private channel intro at `production/assets/channel-intro.mp4`, then cross-fades into the titled story. Put a transparent `channel-logo.png` beside it. The logo is rendered on every final video in the lower-right reference position, inset from the edges (at 1280x720: 76px high, 72px from the right, 75px from the bottom). Both private assets are intentionally not committed; each clone must supply its own licensed copies.
 
-The finishing commands printed by `start-video.ps1` download a Creative Commons Zero Freesound horror music bed, loop it under the story, and automatically duck it below Hindi narration and character dialogue. Set these local-only values in `scripting/.env` before the audio step:
+The finishing commands printed by `start-video.ps1` download a Creative Commons Zero Freesound horror music bed and loop it continuously beneath the story at -20.9 LUFS. Narration is held around -14 LUFS after compression, which keeps it clearly intelligible. A 0 LUFS narration target is intentionally not used because it would clip speech. Set these local-only values in `scripting/.env` before the audio step:
 
 ```text
 FREESOUND_CLIENT_ID=

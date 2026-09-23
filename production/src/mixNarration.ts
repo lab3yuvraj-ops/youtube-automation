@@ -19,9 +19,9 @@ const narrationDir = path.resolve(arg('--narration-dir') ?? path.join(inputDir, 
 const output = path.resolve(arg('--output') ?? path.join(inputDir, 'final-narrated.mp4'));
 const bgm = arg('--bgm') ? path.resolve(arg('--bgm')!) : undefined;
 // The Google AI Studio narration is quiet by design. Compression with 12 dB
-// makeup yields a measured ~-14 LUFS narration against a -20 LUFS music bed.
+// makeup yields a measured ~-14 LUFS narration against a -20.9 LUFS music bed.
 const narrationMakeupDb = Number(arg('--narration-makeup-db', '12'));
-const bgmLufs = Number(arg('--bgm-lufs', '-20'));
+const bgmLufs = Number(arg('--bgm-lufs', '-20.9'));
 const transition = Number(arg('--transition', '0.35'));
 if (!Number.isFinite(transition) || transition <= 0) throw new Error('--transition must be greater than 0');
 if (!Number.isFinite(narrationMakeupDb) || narrationMakeupDb < 0 || narrationMakeupDb > 24) throw new Error('--narration-makeup-db must be between 0 and 24.');
