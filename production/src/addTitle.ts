@@ -16,7 +16,16 @@ const title = arg('--title', 'AAKHRI BUS KI TEESRI SEAT')!;
 const skipTitle = process.argv.includes('--skip-title');
 const projectFile = arg('--project');
 const intro = path.resolve(arg('--intro') ?? 'assets/channel-intro.mp4');
-const logo = path.resolve(arg('--logo') ?? 'assets/channel-logo.png');
+const logoArgument = arg('--logo');
+const logo = logoArgument
+  ? path.resolve(logoArgument)
+  : await (async () => {
+      for (const extension of ['.png', '.jpg', '.jpeg']) {
+        const candidate = path.resolve(`assets/channel-logo${extension}`);
+        try { await fs.access(candidate); return candidate; } catch (error: any) { if (error?.code !== 'ENOENT') throw error; }
+      }
+      throw new Error('Add a PNG or JPG channel logo in production/assets, or pass --logo <file>.');
+    })();
 const introSeconds = 5;
 const introFadeSeconds = 0.5;
 const escapeAss = (value: string) => value.replace(/[{}\\]/g, (char) => `\\${char}`);

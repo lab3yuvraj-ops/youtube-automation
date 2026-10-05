@@ -1,6 +1,6 @@
 # Hindi Folk-Horror YouTube Automation Pipeline
 
-> **New here?** Please provide your channel logo (transparent PNG) and intro
+> **New here?** Please provide your channel logo image (PNG or JPG) and intro
 > video (MP4, at least 5 seconds long, with audio). Right after cloning, run
 > `./welcome.ps1` in PowerShell. It creates your private `.env` template and
 > tells you where to put those two file paths. See [WELCOME.md](WELCOME.md).
@@ -109,7 +109,7 @@ For every scene with a narration file, the mixer processes only the Google AI St
 
 ### Channel intro, music, and subtitle policy
 
-Every final export starts with the first five seconds of the private channel intro at `production/assets/channel-intro.mp4`, then cross-fades into the titled story. Put a transparent `channel-logo.png` beside it. The logo is rendered on every final video in the lower-right reference position, inset from the edges (at 1280x720: 76px high, 72px from the right, 75px from the bottom). Both private assets are intentionally not committed; each clone must supply its own licensed copies.
+Every final export starts with the first five seconds of the private channel intro at `production/assets/channel-intro.mp4`, then cross-fades into the titled story. Put a channel logo image (`channel-logo.png`, `.jpg`, or `.jpeg`) beside it. The logo is rendered on every final video in the lower-right reference position, inset from the edges (at 1280x720: 76px high, 72px from the right, 75px from the bottom). Both private assets are intentionally not committed; each clone must supply its own licensed copies.
 
 The finishing commands printed by `start-video.ps1` download a Creative Commons Zero Freesound horror music bed and loop it continuously beneath the story at -20.9 LUFS. Narration is held around -14 LUFS after compression, which keeps it clearly intelligible. A 0 LUFS narration target is intentionally not used because it would clip speech. Set these local-only values in `scripting/.env` before the audio step:
 
@@ -161,7 +161,7 @@ Validation: `npm run typecheck` and `npm test` in `production`. Tests mock all n
 
 When a student opens the clone in Codex and says **`onboarding`**, AGENTS.md instructs it to say:
 
-> Welcome to YouTube Automation! Please provide your channel logo (transparent PNG) and intro video (MP4, at least 5 seconds long, with audio).
+> Welcome to YouTube Automation! Please provide your channel logo image (PNG or JPG) and intro video (MP4, at least 5 seconds long, with audio).
 
 All other settings come from `scripting/.env`. `npm run setup` creates this file if missing, preserves existing values, and shows the same asset-only welcome when configuration is incomplete. Git clone alone cannot execute a message.
 

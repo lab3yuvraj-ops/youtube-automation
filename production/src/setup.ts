@@ -14,7 +14,7 @@ try {
 } catch (error: any) {
   console.log(`
 Welcome to YouTube Automation!
-Please provide your channel logo (transparent PNG) and your intro video
+Please provide your channel logo image (PNG or JPG) and your intro video
 (MP4, at least 5 seconds long, with audio).
 
 All other settings are read from your local .env file:

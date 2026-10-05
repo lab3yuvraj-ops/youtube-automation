@@ -28,10 +28,17 @@ export async function setup(assets = true): Promise<Config> {
     if (!process.env.OPENAI_API_KEY?.trim() && !process.env.GROQ_API_KEY?.trim()) {
       throw new Error('Add OPENAI_API_KEY or GROQ_API_KEY to scripting/.env.');
     }
-    for (const [name, variable] of [['channel-logo.png', 'CHANNEL_LOGO_PATH'], ['channel-intro.mp4', 'CHANNEL_INTRO_PATH']]) {
-      const destination = path.join(root, 'production/assets', name);
+    for (const [name, variable] of [['channel-logo', 'CHANNEL_LOGO_PATH'], ['channel-intro.mp4', 'CHANNEL_INTRO_PATH']]) {
       const value = process.env[variable]?.trim();
-      const source = value ? path.resolve(root, value) : destination;
+      const configuredPath = value ? path.resolve(root, value) : undefined;
+      const logoExtension = configuredPath && name === 'channel-logo'
+        ? path.extname(configuredPath).toLowerCase()
+        : '.png';
+      if (name === 'channel-logo' && !['.png', '.jpg', '.jpeg'].includes(logoExtension)) {
+        throw new Error('CHANNEL_LOGO_PATH must point to a PNG or JPG image.');
+      }
+      const destination = path.join(root, 'production/assets', `${name}${logoExtension}`);
+      const source = configuredPath ?? destination;
       try { await fs.access(source); } catch { throw new Error(`Set ${variable} to an existing file in scripting/.env.`); }
       if (source !== destination) await fs.copyFile(source, destination);
     }

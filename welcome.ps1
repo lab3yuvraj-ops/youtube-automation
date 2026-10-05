@@ -14,7 +14,7 @@ $environment = Join-Path $repoRoot 'scripting\.env'
 
 Write-Host ''
 Write-Host 'Welcome to YouTube Automation!' -ForegroundColor Cyan
-Write-Host 'Please provide your channel logo (transparent PNG) and intro video' -ForegroundColor Cyan
+Write-Host 'Please provide your channel logo image (PNG or JPG) and intro video' -ForegroundColor Cyan
 Write-Host '(MP4, at least 5 seconds long, with audio).' -ForegroundColor Cyan
 Write-Host ''
 

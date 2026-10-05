@@ -1,6 +1,6 @@
 # Welcome to YouTube Automation
 
-Please provide your channel logo (transparent PNG) and intro video (MP4, at
+Please provide your channel logo image (PNG or JPG) and intro video (MP4, at
 least 5 seconds long, with audio).
 
 Immediately after cloning, run:
