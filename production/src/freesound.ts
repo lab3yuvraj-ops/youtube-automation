@@ -36,6 +36,18 @@ function required(name: string): string {
   return value;
 }
 
+async function saveRefreshToken(token: string): Promise<void> {
+  if (!/^[A-Za-z0-9._~-]+$/.test(token)) throw new Error('Unexpected refresh token format.');
+  let contents = await fs.readFile(dotenvFile, 'utf8');
+  contents = contents.replace(/^FREESOUND_AUTHORIZATION_CODE=.*(?:\r?\n|$)/gm, '');
+  const replacement = `FREESOUND_REFRESH_TOKEN=${token}`;
+  contents = /^FREESOUND_REFRESH_TOKEN=.*$/m.test(contents)
+    ? contents.replace(/^FREESOUND_REFRESH_TOKEN=.*$/gm, () => replacement)
+    : `${contents.trimEnd()}\n${replacement}\n`;
+  await fs.writeFile(dotenvFile, contents, 'utf8');
+  process.env.FREESOUND_REFRESH_TOKEN = token;
+}
+
 async function accessToken(): Promise<string> {
   const form = new URLSearchParams({
     grant_type: 'refresh_token',
@@ -45,8 +57,9 @@ async function accessToken(): Promise<string> {
   });
   const response = await fetch('https://freesound.org/apiv2/oauth2/access_token/', { method: 'POST', body: form });
   if (!response.ok) throw new Error(`Freesound token refresh failed (${response.status}).`);
-  const data = await response.json() as { access_token?: string };
+  const data = await response.json() as { access_token?: string; refresh_token?: string };
   if (!data.access_token) throw new Error('Freesound did not return an access token.');
+  if (data.refresh_token) await saveRefreshToken(data.refresh_token);
   return data.access_token;
 }
 
@@ -56,26 +69,22 @@ async function exchangeAuthorizationCode(code: string): Promise<string> {
     client_id: required('FREESOUND_CLIENT_ID'),
     client_secret: required('FREESOUND_CLIENT_SECRET'),
     code,
-    redirect_uri: 'https://freesound.org/home/app_permissions/permission_granted/',
   });
   const response = await fetch('https://freesound.org/apiv2/oauth2/access_token/', { method: 'POST', body: form });
   if (!response.ok) throw new Error(`Freesound authorization-code exchange failed (${response.status}).`);
   const data = await response.json() as { access_token?: string; refresh_token?: string };
   if (!data.access_token || !data.refresh_token) throw new Error('Freesound did not return an access and refresh token pair.');
-  const contents = await fs.readFile(dotenvFile, 'utf8');
-  const replacement = `FREESOUND_REFRESH_TOKEN=${data.refresh_token}`;
-  const updated = /^FREESOUND_REFRESH_TOKEN=.*$/m.test(contents)
-    ? contents.replace(/^FREESOUND_REFRESH_TOKEN=.*$/m, replacement)
-    : `${contents.trimEnd()}\n${replacement}\n`;
-  await fs.writeFile(dotenvFile, updated, 'utf8');
-  process.env.FREESOUND_REFRESH_TOKEN = data.refresh_token;
+  await saveRefreshToken(data.refresh_token);
   return data.access_token;
 }
 
 const query = arg('--query', 'dark Indian folk horror supernatural suspense ambient, no vocals')!;
 const output = path.resolve(arg('--output') ?? 'outputs/background-music.mp3');
-const authorizationCode = arg('--authorization-code');
+const authorizationCode = process.env.FREESOUND_AUTHORIZATION_CODE || arg('--authorization-code');
 const token = authorizationCode ? await exchangeAuthorizationCode(authorizationCode) : await accessToken();
+if (process.argv.includes('--auth-only')) {
+  console.log('Freesound credentials validated and refresh token saved locally.');
+} else {
 const search = new URL('https://freesound.org/apiv2/search/text/');
 search.searchParams.set('query', query);
 search.searchParams.set('filter', 'license:"Creative Commons 0" duration:[30 TO 600]');
@@ -93,3 +102,5 @@ await fs.mkdir(path.dirname(output), { recursive: true });
 await fs.writeFile(output, Buffer.from(await audioResponse.arrayBuffer()));
 await fs.writeFile(`${output}.license.json`, `${JSON.stringify({ provider: 'Freesound', id: sound.id, name: sound.name, creator: sound.username, license: sound.license, source: sound.url, query, downloaded_at: new Date().toISOString() }, null, 2)}\n`);
 console.log(JSON.stringify({ output, refreshed_authorization: Boolean(authorizationCode), sound: { id: sound.id, name: sound.name, license: sound.license, durationSeconds: sound.duration }, query }, null, 2));
+
+}

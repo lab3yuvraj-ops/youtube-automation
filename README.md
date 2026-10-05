@@ -116,47 +116,52 @@ FREESOUND_REFRESH_TOKEN=
 
 The music downloader saves a license record beside the downloaded file. Final FFmpeg exports map only video and audio, so soft subtitle streams are not carried into the completed video. The pipeline does not add subtitles. Burned-in captions or third-party watermarks must be avoided by obtaining a clean source export; they are not removed or concealed by this project.
 
-### Approval and optional YouTube publishing
+### First-run setup and approval uploads
 
-The final title command printed by `start-video.ps1` includes `--project`. Once it finishes, the project enters `awaiting_approval` and asks two questions: “Should I approve this video?” and “Is it good to post on YouTube or not?” The answer is persisted in `pipeline.json`, so a later session can continue safely.
+Requires Node.js 22+, Python, FFmpeg and the existing production dependencies.
+Copy `scripting/.env.example` to `scripting/.env` once, then fill in your values there. This single file holds writing-model keys, music credentials, Zernio upload settings and logo/intro file paths. Never overwrite an existing `.env` containing credentials.
+
+```dotenv
+ZERNIO_API_KEY=your_zernio_key
+ZERNIO_YOUTUBE_ACCOUNT_ID=your_connected_account_id
+YOUTUBE_VISIBILITY=private
+CHANNEL_LOGO_PATH=C:/Users/you/Pictures/logo.png
+CHANNEL_INTRO_PATH=C:/Users/you/Videos/intro.mp4
+```
+
+Use the connected account ID from Zernio, not the YouTube channel ID. Connect your channel in Zernio first. Paths may be absolute or relative to the repository root. Files stay on disk; only their paths go in `.env`. Visibility defaults to private; set public when ready.
+
+Run `npm install` then `npm run setup` from `production` to validate settings and copy channel assets. `start-video.ps1` also runs this check automatically. Credentials are read from the same Git-ignored `scripting/.env` on each run, with environment variables taking precedence. The earlier `.env.upload.json` is no longer used; move any saved values into `.env`.
+
+The existing Flow and Google AI Studio narration workflow remains in place. The final `add-title --project ...` command renders the intro and logo, records the exact video hash, and in an interactive terminal asks one question: **Is this video good enough to upload to YouTube?** It shows the video path, account and visibility. Yes uploads the local MP4 through Zernio immediately; no records rejection without uploading. No second publishing confirmation is needed.
+
+For an agent or noninteractive run, use:
 
 ```powershell
-cd production
-npm run review -- approve --project ..\scripting\projects\your-project\pipeline.json
-# or, if the result is not accepted:
-npm run review -- reject --project ..\scripting\projects\your-project\pipeline.json
+npm run review -- prompt --project <pipeline.json>
+# Or record the user's explicit decision:
+npm run review -- approve --project <pipeline.json>
+npm run review -- reject --project <pipeline.json>
 ```
 
-A rejection prints the follow-up question, “Should I regenerate the video?” No regeneration or publishing occurs automatically.
+Approval is tied to the rendered file hash. Modified videos require a fresh review. Concurrent uploads are locked. Once a post request starts, repeat submissions are blocked even if the network response is lost; check the Zernio dashboard to reconcile before taking further action. A stale `.upload.lock` after a process crash must be inspected before manual removal. Pre-submission failures can be retried with `npm run review -- retry --project <pipeline.json>`.
 
-Zernio is optional and is used only after approval. Add a local `ZERNIO_API_KEY` to `scripting/.env` or your environment; the example value is intentionally blank and ignored by Git. Verify the connected account with this read-only call:
+A submitted post is not reported as published until Zernio returns a published platform status. Pending submissions can be followed in the Zernio dashboard. `review status` shows the locally recorded response, not a live poll.
 
-```powershell
-npm run zernio -- test
-```
+API references: https://docs.zernio.com/guides/media-uploads and https://docs.zernio.com/platforms/youtube.
 
-To publish later, first connect YouTube in Zernio, then provide its account ID and a publicly reachable MP4 URL. The command defaults to a safer private visibility and requires a separate external-write confirmation:
+Validation: `npm run typecheck` and `npm test` in `production`. Tests mock all network calls; they never upload to YouTube.
 
-```powershell
-npm run zernio -- publish -- --project ..\scripting\projects\your-project\pipeline.json --account-id YOUR_ZERNIO_YOUTUBE_ACCOUNT_ID --media-url https://cdn.example.com/final.mp4 --title "Your title" --visibility private --confirm-publish YES
-```
+### Welcome message for new users
 
-The publisher sends Zernio's YouTube AI-disclosure field (`containsSyntheticMedia: true`). It will refuse to run unless the local project is approved. It never uploads or posts merely from a key being present.
+When a connected Codex agent first opens a new clone, AGENTS.md instructs it to say:
 
-## Configuration
+> Welcome to YouTube Automation! Please provide your channel logo (transparent PNG) and intro video (MP4, at least 5 seconds long, with audio).
 
-Set optional production environment variables:
+All other settings come from `scripting/.env`. `npm run setup` creates this file if missing, preserves existing values, and shows the same asset-only welcome when configuration is incomplete. Git clone alone cannot execute a message.
 
-```text
-FLOW_URL=https://labs.google/flow
-FLOW_PROJECT_NAME=Hindi Folk Horror
-FLOW_IMAGE_MODEL=
-FLOW_VIDEO_MODEL=
-FLOW_RATE_LIMIT_MS=1500
-ZERNIO_API_KEY=
-FREESOUND_CLIENT_ID=
-FREESOUND_CLIENT_SECRET=
-FREESOUND_REFRESH_TOKEN=
-```
+### Get Freesound credentials with your connected browser
 
-Selectors are data, not logic. If Flow changes, update the selector candidates and the wait predicates in `production/src/flowClient.ts`.
+Ask your Codex agent: “Use my connected Chrome browser to get my Freesound client ID, client secret and refresh token, and save them in my local .env.” You may also provide a specific Google Sheet link containing existing credentials. The agent follows [the onboarding workflow](docs/freesound-onboarding.md), completes the authorized browser steps, then validates using `npm run freesound -- --auth-only`. Login or consent may require your interaction. This workflow requires the connected agent, not just Node.js.
+
+No credentials appear in the welcome message. Refresh tokens are saved after rotation; temporary authorization codes are removed after successful exchange.

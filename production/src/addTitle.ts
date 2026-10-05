@@ -70,5 +70,10 @@ const review = projectFile ? await markReviewPending(path.resolve(projectFile), 
 console.log(JSON.stringify({
   input, output, title, skipTitle, titleEndSeconds: skipTitle ? 0 : 3.7, intro, introSeconds, logo,
   logoPlacement: { height: logoHeight, right: logoRight, bottom: logoBottom }, review,
-  questions: review ? ['Should I approve this video?', 'Is it good to post on YouTube or not?'] : undefined,
+  questions: review ? ['Is this video good enough to upload to YouTube?'] : undefined,
 }));
+
+if (projectFile && process.stdin.isTTY) {
+  const { promptReview } = await import('./upload.js');
+  await promptReview(path.resolve(projectFile));
+}

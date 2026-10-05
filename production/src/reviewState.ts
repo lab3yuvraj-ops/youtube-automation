@@ -1,10 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fingerprint } from './upload.js';
 
-export type ReviewStatus = 'awaiting_approval' | 'approved' | 'rejected' | 'posted' | 'failed';
+export type ReviewStatus = 'awaiting_approval' | 'approved' | 'rejected' | 'posted' | 'failed' | 'submitting' | 'submitted';
 
 export interface ReviewState {
   status: ReviewStatus;
+  video_sha256?: string;
+  submission_started_at?: string;
   video_path: string;
   title?: string;
   requested_at?: string;
@@ -33,9 +36,11 @@ export async function saveProject(projectFile: string, project: ReviewProject): 
 
 export async function markReviewPending(projectFile: string, videoFile: string, title?: string): Promise<ReviewState> {
   const project = await loadProject(projectFile);
+  if (project.review?.submission_started_at) throw new Error('This project already has a submission. Use a new project for a new video.');
   const review: ReviewState = {
     status: 'awaiting_approval',
     video_path: path.resolve(videoFile),
+    video_sha256: await fingerprint(videoFile),
     title,
     requested_at: new Date().toISOString(),
   };

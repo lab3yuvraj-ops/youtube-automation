@@ -5,9 +5,11 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-if ([string]::IsNullOrWhiteSpace($env:OPENAI_API_KEY) -and [string]::IsNullOrWhiteSpace($env:GROQ_API_KEY)) {
-  throw "Set OPENAI_API_KEY or GROQ_API_KEY in scripting/.env or your environment before starting a project."
-}
+Push-Location (Join-Path $PSScriptRoot "production")
+try {
+  npm run setup
+  if ($LASTEXITCODE -ne 0) { throw "Setup failed." }
+} finally { Pop-Location }
 
 $projectId = "youtube-automation-" + (Get-Date -Format "yyyyMMdd-HHmmss")
 $repoRoot = $PSScriptRoot

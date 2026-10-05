@@ -1,3 +1,4 @@
+import { loadEnvironment } from './setupConfig.js';
 import { loadProject, saveProject } from './reviewState.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -10,25 +11,7 @@ const arg = (name: string): string | undefined => {
   return index >= 0 ? process.argv[index + 1] : undefined;
 };
 
-async function loadLocalEnvironment(): Promise<void> {
-  const dotenvFile = path.resolve(moduleDirectory, '../../scripting/.env');
-  try {
-    const contents = await fs.readFile(dotenvFile, 'utf8');
-    for (const rawLine of contents.split(/\r?\n/)) {
-      const line = rawLine.trim();
-      if (!line || line.startsWith('#')) continue;
-      const separator = line.indexOf('=');
-      if (separator < 1) continue;
-      const name = line.slice(0, separator).trim();
-      const value = line.slice(separator + 1).trim().replace(/^['"]|['"]$/g, '');
-      if (name && value && !process.env[name]) process.env[name] = value;
-    }
-  } catch (error: any) {
-    if (error?.code !== 'ENOENT') throw error;
-  }
-}
-
-await loadLocalEnvironment();
+await loadEnvironment();
 
 function apiKey(): string {
   const key = process.env.ZERNIO_API_KEY;
@@ -54,17 +37,8 @@ if (command === 'test') {
   const response = await request(`/connect/youtube?profileId=${encodeURIComponent(profileId)}`);
   console.log(JSON.stringify({ response, write_operation: false }, null, 2));
 } else if (command === 'publish') {
-  if (arg('--confirm-publish') !== 'YES') throw new Error('Publishing is external. Pass --confirm-publish YES only after explicit approval.');
-  const projectFile = arg('--project'); const accountId = arg('--account-id'); const mediaUrl = arg('--media-url'); const title = arg('--title');
-  if (!projectFile || !accountId || !mediaUrl || !title) throw new Error('Pass --project, --account-id, --media-url (a publicly reachable MP4), and --title.');
-  const project = await loadProject(path.resolve(projectFile));
-  if (project.review?.status !== 'approved') throw new Error('The video must be approved before it can be published.');
-  const description = arg('--description') ?? '';
-  const tags = (arg('--tags') ?? '').split(',').map((tag) => tag.trim()).filter(Boolean);
-  const visibility = arg('--visibility') ?? 'private';
-  if (!['public', 'private', 'unlisted'].includes(visibility)) throw new Error('Visibility must be public, private, or unlisted.');
-  const result = await request('/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: description, tags, mediaItems: [{ type: 'video', url: mediaUrl }], platforms: [{ platform: 'youtube', accountId, platformSpecificData: { title: title.slice(0, 100), visibility, madeForKids: false, containsSyntheticMedia: true } }], publishNow: true }) }) as any;
-  project.review.status = 'posted'; project.review.posted_at = new Date().toISOString(); project.review.zernio_post_id = result?.post?.id; project.review.youtube_url = result?.post?.platforms?.[0]?.platformPostUrl;
-  await saveProject(path.resolve(projectFile), project);
-  console.log(JSON.stringify({ published: true, post_id: project.review.zernio_post_id, youtube_url: project.review.youtube_url }, null, 2));
+  const projectFile = arg('--project');
+  if (!projectFile) throw new Error('Pass --project <pipeline.json>.');
+  const { publishApproved } = await import('./upload.js');
+  console.log(await publishApproved(path.resolve(projectFile)));
 } else throw new Error('Use one of: test, connect-youtube, publish.');
