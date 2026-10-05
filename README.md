@@ -1,5 +1,10 @@
 # Hindi Folk-Horror YouTube Automation Pipeline
 
+> **New here?** Please provide your channel logo (transparent PNG) and intro
+> video (MP4, at least 5 seconds long, with audio). Right after cloning, run
+> `./welcome.ps1` in PowerShell. It creates your private `.env` template and
+> tells you where to put those two file paths. See [WELCOME.md](WELCOME.md).
+
 This repository contains a two-half pipeline:
 
 - `scripting/`: OpenAI-or-Groq API orchestration for idea -> script -> assets -> scenes -> publishing metadata.
