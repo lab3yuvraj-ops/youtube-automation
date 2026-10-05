@@ -159,7 +159,7 @@ Validation: `npm run typecheck` and `npm test` in `production`. Tests mock all n
 
 ### Welcome message for new users
 
-When a connected Codex agent first opens a new clone, AGENTS.md instructs it to say:
+When a student opens the clone in Codex and says **`onboarding`**, AGENTS.md instructs it to say:
 
 > Welcome to YouTube Automation! Please provide your channel logo (transparent PNG) and intro video (MP4, at least 5 seconds long, with audio).
 
