@@ -169,4 +169,6 @@ All other settings come from `scripting/.env`. `npm run setup` creates this file
 
 Ask your Codex agent: “Use my connected Chrome browser to get my Freesound client ID, client secret and refresh token, and save them in my local .env.” You may also provide a specific Google Sheet link containing existing credentials. The agent follows [the onboarding workflow](docs/freesound-onboarding.md), completes the authorized browser steps, then validates using `npm run freesound -- --auth-only`. Login or consent may require your interaction. This workflow requires the connected agent, not just Node.js.
 
+You can also say **“get all the attention”** during Freesound setup. The agent will complete routine steps without repeating approval questions. It pauses only if Freesound requires you to accept its API terms or confirm creation of persistent API credentials.
+
 No credentials appear in the welcome message. Refresh tokens are saved after rotation; temporary authorization codes are removed after successful exchange.
