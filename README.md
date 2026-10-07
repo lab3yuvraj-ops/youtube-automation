@@ -2,7 +2,7 @@
 
 > **New here?** Please provide your channel logo image (PNG or JPG) and intro
 > video (MP4, at least 5 seconds long, with audio). Right after cloning, run
-> `./welcome.ps1` in PowerShell. It creates your private `.env` template and
+> `node welcome.mjs` on Mac or Windows. It creates your private `.env` template and
 > tells you where to put those two file paths. See [WELCOME.md](WELCOME.md).
 
 This repository contains a two-half pipeline:
@@ -11,6 +11,36 @@ This repository contains a two-half pipeline:
 - `production/`: Playwright browser automation for Google Flow using a persistent Chrome profile.
 
 ## Fastest local workflow: give one title
+
+### One command on Mac and Windows
+
+From the repository root, after installing Node 22.19+, FFmpeg and Python dependencies:
+
+```sh
+npm --prefix production install
+node welcome.mjs
+node start-video.mjs --title "Aakhri Local"
+```
+
+Fill the existing local `scripting/.env` once. Python can be selected with `PYTHON`; the launcher automatically uses `scripting/.venv` when present. On Mac, the Python command is `python3`. The Node launcher uses argument arrays rather than shell strings and requires no PowerShell.
+
+The command generates the script, Flow assets and scene downloads, AI Studio narration downloads, music, the mixed story, and the intro/logo export. It saves `final.mp4` and `delivery.json` in the project's output folder, then records `awaiting_approval`. When running through Codex, the agent displays that MP4 in chat before asking for approval. A standalone terminal cannot attach files to a chat by itself. Login/Google verification may still require you to act in the browser.
+
+Resume the existing Mac project with this command from the repository root (no new script or project is created):
+
+```sh
+node start-video.mjs --project scripting/projects/youtube-automation-aakhri-local-20261006-165125/pipeline.json
+```
+
+Install Python requirements once using your virtual environment's Python: `python3 -m pip install -r scripting/requirements.txt` (Windows: `python -m pip ...`). FFmpeg/ffprobe must be available in PATH. If Playwright's bundled browser is missing, installed Chrome is used; if neither browser exists, the matching Playwright Chromium is downloaded. Close only another window using the same automation profile if it is locked; the launcher does not kill browsers or delete profile locks.
+
+Flow submissions are saved before generating. On resume they are checked without submitting again; current media takes precedence over old queue text. Downloads target the matching new media card. If a prior locally modified runner submitted a scene without saving its reference, an agent must first identify that existing result in the connected browser. Blind regeneration is refused.
+
+Browser integration tests cover the failure cases against local fixtures. Real Google pages can change, and the Mac/Google session in the error report has not been available for a live end-to-end test here. If controls change, the saved result is retained and the failing Flow screenshot is saved locally in `flow-error.png` for the agent to inspect.
+
+Run `npm test` and `npm run typecheck` in `production` to verify locally. A Mac/Windows/Linux GitHub Actions template is saved at `docs/automation-tests.yml`; enabling it requires moving it to `.github/workflows` with GitHub workflow permission. It is not active automatically.
+
+### Existing Windows launcher
 
 This is a local-only project. Nothing requires Railway or a cloud browser session. Copy `scripting/.env.example` to `scripting/.env`, add either your OpenAI or Groq key, ensure Chrome is logged into Google Flow, then run:
 
@@ -29,7 +59,7 @@ The scripting stages (idea, story, characters, backgrounds, scenes, and publishi
 
 If both keys exist, OpenAI is used. Set `OPENAI_MODEL` or `GROQ_MODEL` in `scripting/.env` to override the default. Keys are never committed; `.env` is ignored by Git.
 
-After Flow finishes, generate every listed narrator file in Google AI Studio. If Google AI Studio does not generate after two attempts, pause and ask the human to click **Run**. Put files in `production/outputs/<project>/narration/`, then run the final commands printed by the launcher. Character scenes retain their Flow audio unchanged. Narrator scenes use their Google AI Studio file, while scene ambience/SFX can remain quietly underneath.
+The older PowerShell launcher prints narration and finishing commands for compatibility. Use `start-video.mjs` for automatic continuation through those stages. Character scenes retain their Flow audio. Narrator scenes use AI Studio audio with scene ambience/SFX beneath it.
 
 ## Important prompt-template contract
 
@@ -83,7 +113,7 @@ npm run flow -- --project ..\scripting\projects\village-well\pipeline.json --use
 
 The runner uses a persistent Chromium profile. On first use, complete Google login in the opened browser, then rerun. UI labels/selectors are centralized in `production/src/selectors.ts` and can be updated when Flow changes. It waits on DOM state and download events, not fixed render sleeps. The runner skips `done`, retries each `failed` item once, logs structured errors, and continues with later items.
 
-When Google Flow reports high demand, the runner keeps that browser session open and waits up to 30 minutes for the already-queued generation to finish. It does not submit a duplicate request. Set `FLOW_QUEUE_WAIT_MINUTES` to a value from 1 to 120 if a different wait period is needed. If Flow remains queued beyond that limit, the scene stays `pending` and can be resumed later.
+The runner watches current media for up to 30 minutes after a saved submission, even when the chat contains an old high-demand message. It does not submit a duplicate request on resume. Set `FLOW_QUEUE_WAIT_MINUTES` to a value from 1 to 120 for a different wait period. If there is still no matching result, the item stays `pending` for resume. A run interrupted exactly during submission is flagged for inspection rather than guessed or resubmitted.
 
 This automation is intentionally conservative: it does not call a Flow API, create accounts, acquire credits, or clone voices.
 

@@ -49,6 +49,14 @@ async function duration(file: string): Promise<number> {
 }
 
 const durations = await Promise.all(sceneFiles.map(duration));
+const sceneNumbers = sceneFiles.map(file => Number(/scene-(\d{4})/i.exec(path.basename(file))![1]));
+const manifestFile = arg('--manifest');
+if (manifestFile) {
+  const manifest = JSON.parse(await fs.readFile(path.resolve(manifestFile), 'utf8'));
+  for (const scene of manifest.scenes) {
+    if (!sceneNumbers.includes(scene.scene_number) || !narrationNames.has(scene.scene_number)) throw new Error(`Missing clip or narration for scene ${scene.scene_number}. Refusing a silent final video.`);
+  }
+}
 const narrationInputs = [...narrationNames.entries()].sort(([a], [b]) => a - b);
 if (bgm) await fs.access(bgm);
 const narrationDurations = new Map(await Promise.all(narrationInputs.map(async ([scene, file]) => [scene, await duration(file)] as const)));
@@ -56,21 +64,20 @@ const narrationDurations = new Map(await Promise.all(narrationInputs.map(async (
 // but do not pad a short narration with several seconds of silence.
 const narrationTail = 0.25;
 const outputDurations = durations.map((clipDuration, index) => {
-  const narrationDuration = narrationDurations.get(index + 1);
+  const narrationDuration = narrationDurations.get(sceneNumbers[index]);
   if (narrationDuration === undefined) return clipDuration;
   // Scene 2 needs the full establishing narration before the driver speaks.
   // Slow the picture rather than cutting the final words of its voiceover.
-  if (index + 1 === 2) return Math.max(clipDuration, narrationDuration + narrationTail);
-  return Math.min(clipDuration, narrationDuration + narrationTail);
+  return Math.max(clipDuration, narrationDuration + narrationTail);
 });
 const narrationIndex = new Map(narrationInputs.map(([scene], index) => [scene, sceneFiles.length + index]));
 let graph = '';
 for (let i = 0; i < sceneFiles.length; i++) {
-  const scene = i + 1;
+  const scene = sceneNumbers[i];
   const videoTiming = outputDurations[i] > durations[i]
     ? `setpts=${(outputDurations[i] / durations[i]).toFixed(6)}*PTS,`
     : '';
-  graph += `${graph ? ';' : ''}[${i}:v]${videoTiming}trim=duration=${outputDurations[i].toFixed(3)},setpts=PTS-STARTPTS[v${i}]`;
+  graph += `${graph ? ';' : ''}[${i}:v]${videoTiming}trim=duration=${outputDurations[i].toFixed(3)},fps=30,settb=AVTB,setsar=1,setpts=PTS-STARTPTS[v${i}]`;
   const voiceInput = narrationIndex.get(scene);
   if (voiceInput === undefined) {
     graph += `;[${i}:a]atrim=duration=${outputDurations[i].toFixed(3)},asetpts=PTS-STARTPTS[a${i}]`;
@@ -79,8 +86,8 @@ for (let i = 0; i < sceneFiles.length; i++) {
     // narration instead of being muted, so narration gaps never become
     // dead air. Character scenes (without narration) remain fully native.
     graph += `;[${i}:a]apad,atrim=duration=${outputDurations[i].toFixed(3)},asetpts=PTS-STARTPTS[source${i}]`;
-    graph += `;[${voiceInput}:a]acompressor=threshold=0.05:ratio=8:attack=5:release=100:makeup=${narrationMakeupDb},alimiter=limit=0.9:level=0,asetpts=PTS-STARTPTS,apad,atrim=duration=${outputDurations[i].toFixed(3)}[voice${i}]`;
-    graph += `;[source${i}][voice${i}]sidechaincompress=threshold=0.025:ratio=12:attack=80:release=500[duckedsource${i}]`;
+    graph += `;[${voiceInput}:a]acompressor=threshold=0.05:ratio=8:attack=5:release=100:makeup=${narrationMakeupDb},alimiter=limit=0.9:level=0,asetpts=PTS-STARTPTS,apad,atrim=duration=${outputDurations[i].toFixed(3)},asplit=2[voice${i}][sidechain${i}]`;
+    graph += `;[source${i}][sidechain${i}]sidechaincompress=threshold=0.025:ratio=12:attack=80:release=500[duckedsource${i}]`;
     graph += `;[duckedsource${i}][voice${i}]amix=inputs=2:duration=first:normalize=0[a${i}]`;
   }
 }

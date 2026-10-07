@@ -37,7 +37,7 @@ export async function setup(assets = true): Promise<Config> {
       if (name === 'channel-logo' && !['.png', '.jpg', '.jpeg'].includes(logoExtension)) {
         throw new Error('CHANNEL_LOGO_PATH must point to a PNG or JPG image.');
       }
-      const destination = path.join(root, 'production/assets', `${name}${logoExtension}`);
+      const destination = path.join(root, 'production/assets', name === 'channel-logo' ? `${name}${logoExtension}` : name);
       const source = configuredPath ?? destination;
       try { await fs.access(source); } catch { throw new Error(`Set ${variable} to an existing file in scripting/.env.`); }
       if (source !== destination) await fs.copyFile(source, destination);

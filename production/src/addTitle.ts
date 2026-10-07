@@ -44,6 +44,7 @@ const logoHeight = Math.round(storySize.height * 0.1056);
 const logoRight = Math.round(storySize.width * 0.05625);
 const logoBottom = Math.round(storySize.height * 0.10417);
 const ass = path.join(path.dirname(output), '.last-bus-title.ass');
+await fs.mkdir(path.dirname(output), { recursive: true });
 await fs.writeFile(ass, `[Script Info]
 ScriptType: v4.00+
 PlayResX: 1280
@@ -58,7 +59,9 @@ Dialogue: 0,0:00:00.00,0:00:03.70,Title,,0,0,0,,{\\fad(400,700)\\fscx72\\fscy72\
 Dialogue: 1,0:00:00.00,0:00:03.70,Kicker,,0,0,0,,{\\fad(400,700)\\fscx72\\fscy72\\t(0,400,\\fscx100\\fscy100)}H I N D I   F O L K   H O R R O R
 `);
 const escapedAss = ass.replace(/\\/g, '/').replace(':', '\\:');
-const mainTitleFilter = skipTitle ? 'null' : `subtitles=filename='${escapedAss}':fontsdir='C\\:/Windows/Fonts'`;
+const fonts = process.env.TITLE_FONTS_DIR || (process.platform === 'win32' ? 'C:/Windows/Fonts' : process.platform === 'darwin' ? '/System/Library/Fonts' : '/usr/share/fonts');
+const escapedFonts = fonts.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
+const mainTitleFilter = skipTitle ? 'null' : `subtitles=filename='${escapedAss}':fontsdir='${escapedFonts}'`;
 const graph = [
   `[0:v]trim=duration=${introSeconds},scale=${storySize.width}:${storySize.height}:force_original_aspect_ratio=decrease,pad=${storySize.width}:${storySize.height}:(ow-iw)/2:(oh-ih)/2,fps=30,settb=AVTB,setsar=1,setpts=PTS-STARTPTS[introvideo]`,
   `[1:v]${mainTitleFilter},scale=${storySize.width}:${storySize.height},fps=30,settb=AVTB,setsar=1,setpts=PTS-STARTPTS[storyvideo]`,
@@ -82,7 +85,7 @@ console.log(JSON.stringify({
   questions: review ? ['Is this video good enough to upload to YouTube?'] : undefined,
 }));
 
-if (projectFile && process.stdin.isTTY) {
+if (projectFile && process.stdin.isTTY && !process.argv.includes('--defer-approval')) {
   const { promptReview } = await import('./upload.js');
   await promptReview(path.resolve(projectFile));
 }

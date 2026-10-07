@@ -14,7 +14,9 @@
     "zernio": "node --use-system-ca --import tsx src/zernio.ts",
     "typecheck": "tsc --noEmit",
     "setup": "tsx src/setup.ts",
-    "test": "tsx --test src/upload.test.ts"
+    "test": "tsx --test src/*.test.ts",
+    "video": "node --use-system-ca --import tsx src/workflow.ts",
+    "recover-scene": "tsx src/recoverScene.ts"
   },
   "dependencies": {
     "@playwright/test": "^1.49.0",
