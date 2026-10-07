@@ -1,6 +1,13 @@
 import { chromium, Page, Download } from 'playwright';
 import { S } from './selectors.js';
 
+export class FlowGenerationQueuedError extends Error {
+  constructor(message = 'Flow scheduled this generation because of high demand.') {
+    super(message);
+    this.name = 'FlowGenerationQueuedError';
+  }
+}
+
 export class FlowClient {
   constructor(private page:Page, private log:(e:string,d?:any)=>void) {}
   async first(candidates: readonly string[], timeout=15000) { for (const s of candidates) { const l=this.page.locator(s).first(); try { await l.waitFor({state:'visible',timeout}); return l; } catch {} } throw new Error(`Selector not found: ${candidates.join(' | ')}`); }
@@ -8,7 +15,31 @@ export class FlowClient {
   async fill(candidates:readonly string[], text:string) { const l=await this.first(candidates); await l.fill(text); }
   async waitComplete(timeout=300000) { await this.first(S.completed, timeout); }
   async prompt(text:string) { await this.fill(S.promptInput,text); }
-  async generate() { await this.click(S.submit); await this.waitComplete(); }
+  async generate() {
+    await this.click(S.submit);
+    const queueNotice = this.page.getByText(/(?:high demand|scheduled|queued|try again later)/i).last();
+    const result = await Promise.race([
+      this.first(S.completed, 300000).then(() => 'complete' as const),
+      queueNotice.waitFor({state:'visible', timeout:300000}).then(() => 'queued' as const),
+    ]);
+    if (result === 'complete') return;
+
+    const minutes = Number(process.env.FLOW_QUEUE_WAIT_MINUTES ?? '30');
+    if (!Number.isFinite(minutes) || minutes < 1 || minutes > 120) {
+      throw new Error('FLOW_QUEUE_WAIT_MINUTES must be between 1 and 120.');
+    }
+    this.log('flow_generation_queued', {
+      message: 'Flow queued the existing generation. Waiting without submitting another request.',
+      waitMinutes: minutes,
+    });
+    try {
+      await this.first(S.completed, minutes * 60_000);
+    } catch {
+      throw new FlowGenerationQueuedError(
+        `Flow is still queued after ${minutes} minutes. Rerun later; the pipeline will resume without regenerating completed items.`,
+      );
+    }
+  }
   async rename(name:string) { await this.click(S.options); await this.click(S.rename); await this.fill(S.nameInput,name); await this.click(S.save); }
   async configureVoice(voice:{gender?:string;age?:string;descriptor?:string;name?:string}) {
     await this.click(S.voice);

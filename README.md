@@ -83,6 +83,8 @@ npm run flow -- --project ..\scripting\projects\village-well\pipeline.json --use
 
 The runner uses a persistent Chromium profile. On first use, complete Google login in the opened browser, then rerun. UI labels/selectors are centralized in `production/src/selectors.ts` and can be updated when Flow changes. It waits on DOM state and download events, not fixed render sleeps. The runner skips `done`, retries each `failed` item once, logs structured errors, and continues with later items.
 
+When Google Flow reports high demand, the runner keeps that browser session open and waits up to 30 minutes for the already-queued generation to finish. It does not submit a duplicate request. Set `FLOW_QUEUE_WAIT_MINUTES` to a value from 1 to 120 if a different wait period is needed. If Flow remains queued beyond that limit, the scene stays `pending` and can be resumed later.
+
 This automation is intentionally conservative: it does not call a Flow API, create accounts, acquire credits, or clone voices.
 
 ### Final edit with natural clip lengths and fades

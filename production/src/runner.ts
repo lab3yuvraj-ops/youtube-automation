@@ -1,9 +1,9 @@
-import fs from 'node:fs/promises'; import path from 'node:path'; import { Pipeline, Item } from './types.js'; import { FlowClient } from './flowClient.js'; import { S } from './selectors.js';
+import fs from 'node:fs/promises'; import path from 'node:path'; import { Pipeline, Item } from './types.js'; import { FlowClient, FlowGenerationQueuedError } from './flowClient.js'; import { S } from './selectors.js';
 
 async function save(file:string,p:Pipeline){ const tmp=file+'.tmp'; await fs.writeFile(tmp,JSON.stringify(p,null,2),'utf8'); await fs.rename(tmp,file); }
 function retryable(item:Item){ return item.status!=='done'; }
 function mark(item:Item,status:'done'|'failed',error?:unknown){ item.status=status; item.error=status==='failed'?String(error):null; item.updated_at=new Date().toISOString(); }
-async function once(label:string,item:Item,fn:()=>Promise<void>,p:Pipeline,file:string,log:(e:string,d?:any)=>void){ if(!retryable(item)) return; try { log('start',{label}); await fn(); mark(item,'done'); log('done',{label}); } catch(e) { mark(item,'failed',e); log('failed',{label,error:String(e)}); } finally { await save(file,p); } }
+async function once(label:string,item:Item,fn:()=>Promise<void>,p:Pipeline,file:string,log:(e:string,d?:any)=>void){ if(!retryable(item)) return; try { log('start',{label}); await fn(); mark(item,'done'); log('done',{label}); } catch(e) { if (e instanceof FlowGenerationQueuedError) { item.status='pending'; item.error=String(e); item.updated_at=new Date().toISOString(); log('paused_for_flow_queue',{label,message:e.message}); throw e; } mark(item,'failed',e); log('failed',{label,error:String(e)}); } finally { await save(file,p); } }
 
 export async function run(flow:FlowClient,page:any,p:Pipeline,file:string,out:string,log:(e:string,d?:any)=>void){
   await fs.mkdir(out,{recursive:true});
