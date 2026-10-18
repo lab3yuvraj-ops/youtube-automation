@@ -12,6 +12,8 @@ This repository contains a two-half pipeline:
 
 ## Fastest local workflow: give one title
 
+The editor now checks the project's speaker assignments before mixing: character dialogue stays with its original picture, narrator files are limited to narrator scenes, and music covers non-speaking shots. New exports include an edit report. See [audio timing and continuity editing](docs/editor.md) for re-editing existing videos, measured lip-sync repairs, voice settings, and source-review limits.
+
 ### One command on Mac and Windows
 
 From the repository root, after installing Node 22.19+, FFmpeg and Python dependencies:
@@ -137,7 +139,7 @@ cd production
 npm run mix-narration -- --input-dir .\outputs\youtube-automation-last-bus --narration-dir .\outputs\youtube-automation-last-bus\narration --bgm .\outputs\youtube-automation-last-bus\background-music.mp3 --narration-makeup-db 12 --bgm-lufs -20.9 --output .\outputs\youtube-automation-last-bus\final-narrated.mp4 --transition 0.35
 ```
 
-For every scene with a narration file, the mixer processes only the Google AI Studio narration through the tested speech-compression/limiter chain (approximately -14 LUFS) and retains low scene ambience/SFX beneath it. Character-dialogue scenes do not receive a narration file, so their native Flow voice remains untouched. The continuous background music is normalized to -20.9 LUFS. The same audio/video fade transition is applied between every scene, and clips use Flow's natural durations rather than a fixed length.
+Pass `--project /path/to/pipeline.json` to enforce speaker ownership. Narration uses a -14 LUFS target; character scenes retain native dialogue. Music is continuous at -20.9 LUFS and ducks under speech. Narrator and music-only shots discard Flow audio to avoid accidental duplicate voices. Cuts protect dialogue at scene boundaries. Source durations are retained; long narration holds the last frame instead of changing a speaking character's timing. See `docs/editor.md` for measured corrections and compatibility with the legacy commands.
 
 ### Channel intro, music, and subtitle policy
 

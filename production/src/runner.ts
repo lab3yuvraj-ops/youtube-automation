@@ -30,7 +30,11 @@ export async function run(flow:FlowClient,page:any,p:Pipeline,file:string,out:st
         if(!resume) {
           const narrator=s.speaker==='NARRATOR'||s.speaker==='none';
           const assets=s.assets as any;
-          await flow.agentPrompt(`Generate exactly one 16:9 VIDEO scene using the saved reference assets ${assets?.background_tag??s.background_tag} ${(assets?.character_tags??s.character_tags??[]).join(' ')}. Preserve their appearances. Use a natural duration sufficient for all actions and dialogue. ${narrator?s.animation_prompt_NARRATOR_ONLY:s.animation_prompt_WITH_lipsync}`);
+          const background=assets?.background_tag??s.background_tag;
+          const backgroundDescription=p.backgrounds.find(b=>b.tag===background)?.look_summary??'';
+          const speakingCharacter=p.characters.find(c=>c.tag===s.speaker);
+          const audioLock=narrator?'All characters keep mouths closed. No speech or dialogue in this source clip.':`Only ${s.speaker} speaks, in their fixed voice (${speakingCharacter?.voice_description??JSON.stringify(speakingCharacter?.voice??{})}). Speak exactly: ${s.devanagari_dialogue??''}. Audible speech and mouth movement must start together and stay synchronized. No narrator or delayed dubbed voice.`;
+          await flow.agentPrompt(`Generate exactly one 16:9 VIDEO scene using the saved reference assets ${background} ${(assets?.character_tags??s.character_tags??[]).join(' ')}. Preserve their appearances. CONTINUITY: ${backgroundDescription}. Keep the same layout, furnishings, lighting, costumes and environment for the entire shot. No background replacement, new location, montage or internal scene cut. ${audioLock} Use a natural duration sufficient for all actions and dialogue. ${narrator?s.animation_prompt_NARRATOR_ONLY:s.animation_prompt_WITH_lipsync}`);
         }
         await flow.generate();await flow.download(out,filename);
       },p,file,log);

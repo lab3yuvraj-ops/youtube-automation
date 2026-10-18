@@ -5,6 +5,7 @@ import { S } from './selectors.js';
 import type { Item } from './types.js';
 import { launchProfile } from './browserSession.js';
 import { mediaSources, waitGeneration, type GenerationState } from './generation.js';
+import { saveSceneIdentity } from './sceneIdentity.js';
 export { FlowGenerationQueuedError } from './generation.js';
 
 export class FlowClient {
@@ -114,6 +115,7 @@ export class FlowClient {
     // Flow sometimes exposes only Download batch (ZIP). The exact playable
     // media source is still downloadable without selecting an unrelated item.
     if(!valid) { await this.downloadMediaSource(destination);return; }
+    await saveSceneIdentity(destination,this.item);
     this.log('downloaded', { file: destination });
   }
   private async downloadMediaSource(destination: string) {
@@ -133,6 +135,7 @@ export class FlowClient {
     }
     if(bytes.toString('ascii',4,8)!=='ftyp') throw new Error('Scene media source did not return an MP4. Refusing an invalid result.');
     const temporary=destination+'.tmp';await fs.writeFile(temporary,bytes);await fs.rename(temporary,destination);
+    await saveSceneIdentity(destination,this.item!);
     this.log('downloaded',{file:destination});
   }
 }

@@ -4,6 +4,10 @@ import { promisify } from 'node:util';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+// Use the same speaker-aware editor from either entry point. Keep the legacy
+// clip-only assembly available for callers without a pipeline.
+if(process.argv.includes('--project')) { await import('./mixNarration.js');process.exit(0); }
+
 const exec = promisify(execFile);
 const arg = (name: string, fallback?: string) => {
   const index = process.argv.indexOf(name);

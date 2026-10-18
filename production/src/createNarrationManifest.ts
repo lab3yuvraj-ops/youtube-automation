@@ -1,5 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { sceneRole, type EditScene } from './editorPlan.js';
+import { loadEnvironment } from './setupConfig.js';
 
 const arg = (name: string, fallback?: string) => {
   const index = process.argv.indexOf(name);
@@ -8,23 +10,24 @@ const arg = (name: string, fallback?: string) => {
 
 const projectFile = path.resolve(arg('--project') ?? '../scripting/projects/example/pipeline.json');
 const outputDir = path.resolve(arg('--output-dir') ?? 'outputs');
-const project = JSON.parse(await fs.readFile(projectFile, 'utf8')) as { scenes?: Array<Record<string, unknown>> };
+await loadEnvironment();
+const project = JSON.parse(await fs.readFile(projectFile, 'utf8')) as { scenes?: EditScene[]; narrator_voice?: string; narrator_direction?: string };
 const eligible = (project.scenes ?? [])
-  .filter((scene) => scene.speaker === 'NARRATOR' || scene.speaker === 'none')
+  .filter((scene) => sceneRole(scene) === 'narrator')
   .sort((a, b) => Number(a.scene_number) - Number(b.scene_number))
   .map((scene) => ({
     scene_number: Number(scene.scene_number),
-    text: String(scene.narration_text ?? scene.devanagari_dialogue ?? '').trim(),
+    text: String(scene.narration_text?.trim() || scene.devanagari_dialogue || '').trim(),
   }))
 ;
 const missing = eligible.filter((scene) => !scene.text).map((scene) => scene.scene_number);
 if (missing.length) throw new Error(`Narration text is missing for non-character scenes: ${missing.join(', ')}`);
 const scenes = eligible;
 
-if (!scenes.length) throw new Error('No narrator or silent-scene narration text was found in pipeline.json');
 await fs.mkdir(outputDir, { recursive: true });
 const manifest = {
-  voice_direction: 'Adult Hindi folk-horror narrator. Calm, suspenseful, native North Indian Hindi pronunciation; no English or Western cadence.',
+  voice_direction: project.narrator_direction || 'Adult Hindi folk-horror narrator. Calm, suspenseful, native North Indian Hindi pronunciation; no English or Western cadence. Read exactly the supplied text; no extra dialogue or stage directions.',
+  voice_name: project.narrator_voice || process.env.NARRATOR_VOICE || undefined,
   download_as: 'narration-000N.wav (or .mp3) in the narration folder',
   scenes,
 };

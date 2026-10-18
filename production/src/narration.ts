@@ -5,13 +5,15 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { launchProfile } from './browserSession.js';
 import { loadEnvironment } from './setupConfig.js';
+import { narrationIdentity, verifyNarrationIdentity, saveNarrationIdentity } from './narrationIdentity.js';
 
 export async function generateNarration(page: Page, text: string, direction: string, target: string) {
   const style = page.getByRole('textbox', { name: /style instructions|voice direction/i }).or(page.getByPlaceholder(/style instructions/i)).first();
   const input = page.getByRole('textbox', { name: /^text$|speech text|script/i }).or(page.getByPlaceholder(/enter.*text|text to.*speech|type.*text/i)).first();
   await input.waitFor({ state: 'visible', timeout: 600000 });
   if (await style.isVisible()) await style.fill(direction);
-  await input.fill(`${await style.isVisible() ? '' : `${direction}\n\n`}${text}`);
+  // A missing style field must never turn voice instructions into spoken words.
+  await input.fill(text);
   const run = page.getByRole('button', { name: /^Run(?:\s|$)|Generate speech/i }).first();
   const baseline = await page.locator('audio').evaluateAll(els => els.map(el => (el as HTMLAudioElement).currentSrc || (el as HTMLAudioElement).src));
   let audio;
@@ -20,7 +22,9 @@ export async function generateNarration(page: Page, text: string, direction: str
     const deadline = Date.now() + 180000;
     while (Date.now() < deadline) {
       const sources = await page.locator('audio').evaluateAll(els => els.map(el => (el as HTMLAudioElement).currentSrc || (el as HTMLAudioElement).src).filter(Boolean));
-      const source = sources.find(src => !baseline.includes(src));
+      const fresh=[...new Set(sources.filter(src=>!baseline.includes(src)))];
+      if(fresh.length>1) throw new Error('AI Studio exposed multiple new audio results; identify the matching narration before saving.');
+      const source = fresh[0];
       if (source) { audio = source; break; }
       await page.waitForTimeout(1000);
     }
@@ -55,17 +59,22 @@ export async function generateNarration(page: Page, text: string, direction: str
 
 export async function narrateManifest(manifestFile: string, profile: string) {
   await loadEnvironment();
-  const manifest = JSON.parse(await fs.readFile(manifestFile, 'utf8')) as { voice_direction: string; scenes: { scene_number: number; text: string }[] };
+  const manifest = JSON.parse(await fs.readFile(manifestFile, 'utf8')) as { voice_direction: string; voice_name?: string; scenes: { scene_number: number; text: string }[] };
   const files = new Map<number, string>();
+  const voiceLockFile=path.join(path.dirname(manifestFile),'narrator-voice.json');
+  let savedVoice:string|undefined;
+  try { savedVoice=JSON.parse(await fs.readFile(voiceLockFile,'utf8')).voice_name; }
+  catch(error:any) { if(error.code!=='ENOENT') throw error; }
+  if(savedVoice && manifest.voice_name && savedVoice!==manifest.voice_name) throw new Error('Narrator voice differs from this project\'s saved voice. Regenerate all narrator scenes consistently instead of mixing voices.');
   for(const scene of manifest.scenes) {
     for(const extension of ['wav','mp3','m4a']) {
       const target=path.join(path.dirname(manifestFile),'narration',`narration-${String(scene.scene_number).padStart(4,'0')}.${extension}`);
-      try {
-        await fs.access(target);
-        const probe=await promisify(execFile)('ffprobe',['-v','error','-select_streams','a:0','-show_entries','stream=codec_name','-of','csv=p=0',target]);
-        if(!probe.stdout.trim()) throw new Error('No audio stream.');
-        files.set(scene.scene_number,target);break;
-      } catch {}
+      try { await fs.access(target); } catch(error:any) { if(error.code==='ENOENT') continue;throw error; }
+      const probe=await promisify(execFile)('ffprobe',['-v','error','-select_streams','a:0','-show_entries','stream=codec_name','-of','csv=p=0',target]);
+      if(!probe.stdout.trim()) throw new Error(`Existing narration ${scene.scene_number} has no audio stream; retain it as a backup before regenerating.`);
+      const identity=narrationIdentity(scene.text,manifest.voice_direction,manifest.voice_name);
+      if(!await verifyNarrationIdentity(target,identity)) console.warn(`Legacy narration ${scene.scene_number} has no content/voice fingerprint; check its spoken text and voice before approving. It was preserved.`);
+      files.set(scene.scene_number,target);break;
     }
   }
   if(files.size===manifest.scenes.length) { console.log('All narration already downloaded; reusing existing audio.');return; }
@@ -76,10 +85,23 @@ export async function narrateManifest(manifestFile: string, profile: string) {
     console.log('Waiting for AI Studio speech generation. Complete Google sign-in here if prompted.');
     const singleSpeaker=page.getByRole('button',{name:/Single.speaker audio/i}).or(page.getByRole('radio',{name:/Single.speaker/i})).first();
     if(await singleSpeaker.isVisible()) await singleSpeaker.click();
+    const voice=page.getByRole('combobox',{name:/voice/i}).first();
+    let lockedVoice:string|undefined;
+    const chosenVoice=manifest.voice_name || savedVoice;
+    if(chosenVoice) {
+      await voice.waitFor({state:'visible',timeout:600000});
+      if(await voice.evaluate(el=>el.tagName)==='SELECT') await voice.selectOption({label:chosenVoice});
+      else { await voice.click();await page.getByRole('option',{name:chosenVoice,exact:true}).click(); }
+    }
+    if(await voice.isVisible()) lockedVoice=await voice.evaluate(el=>el instanceof HTMLSelectElement?el.selectedOptions[0]?.textContent??'':el.textContent??'');
+    if(lockedVoice?.trim()) await fs.writeFile(voiceLockFile,JSON.stringify({voice_name:lockedVoice.trim()},null,2));
+    else console.warn('AI Studio voice selector was not readable. Check narrator identity across generated scenes before approval.');
     for (const scene of manifest.scenes) {
       const target = path.join(path.dirname(manifestFile), 'narration', `narration-${String(scene.scene_number).padStart(4,'0')}.wav`);
       if(files.has(scene.scene_number)) { console.log(`Narration ${scene.scene_number}: using existing audio.`);continue; }
+      if(lockedVoice!==undefined && await voice.evaluate(el=>el instanceof HTMLSelectElement?el.selectedOptions[0]?.textContent??'':el.textContent??'')!==lockedVoice) throw new Error('AI Studio narrator voice changed during generation. Restore the locked voice before continuing.');
       await generateNarration(page, scene.text, manifest.voice_direction, target);
+      await saveNarrationIdentity(target,narrationIdentity(scene.text,manifest.voice_direction,manifest.voice_name));
       console.log(`Narration ${scene.scene_number}: downloaded.`);
     }
   } finally { await context.close(); }
